@@ -1,0 +1,147 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--header-height);
+  padding: 0 24px;
+  background: rgba(13, 14, 22, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.header__menu {
+  display: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  transition: background 0.2s var(--ease);
+}
+
+.header__menu:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.header__menu svg {
+  width: 22px;
+  height: 22px;
+}
+
+.header__search {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.header__search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17px;
+  height: 17px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.header__search input {
+  width: 100%;
+  padding: 10px 14px 10px 42px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.header__search input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.header__search input::placeholder {
+  color: var(--text-faint);
+}
+
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.header__stats {
+  display: flex;
+  gap: 8px;
+}
+
+.header__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.header__stat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.header__stat-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.header__stat-value--accent {
+  color: var(--accent);
+}
+
+.header__avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(108, 94, 207, 0.35);
+}
+
+@media (max-width: 860px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .header__menu {
+    display: grid;
+  }
+
+  .header__stat-label {
+    display: none;
+  }
+
+  .header__stat {
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .header__stats {
+    display: none;
+  }
+}

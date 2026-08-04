@@ -1,0 +1,107 @@
+.upload-form {
+  max-width: 640px;
+  padding: 28px;
+}
+
+.upload-form__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 200px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.upload-form__dropzone:hover,
+.upload-form__dropzone--active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.upload-form__dropzone--has-file {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.upload-form__drop-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gradient-soft);
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.upload-form__drop-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.upload-form__drop-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.upload-form__drop-meta {
+  color: var(--text-muted);
+  font-size: 0.83rem;
+}
+
+.upload-form__file-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--gradient);
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.upload-form__file-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.upload-form__file-meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.upload-form__progress {
+  margin-bottom: 20px;
+}
+
+.upload-form__progress-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.upload-form__progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.upload-form__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient);
+  transition: width 0.4s var(--ease);
+}

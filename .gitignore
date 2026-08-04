@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Hardhat
+contracts/artifacts/
+contracts/cache/
+contracts/coverage/
+contracts/typechain-types/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+firebase-debug.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Vercel
+.vercel/

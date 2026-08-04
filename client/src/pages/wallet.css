@@ -1,0 +1,132 @@
+.wallet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.wallet-card {
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--gradient);
+  opacity: 0;
+  transition: opacity 0.25s var(--ease);
+}
+
+.wallet-card:hover::before {
+  opacity: 1;
+}
+
+.wallet-card__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.wallet-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.wallet-card__dot--accent {
+  background: var(--gradient);
+}
+
+.wallet-card__value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.wallet-card__value--accent {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.wallet-card__sub {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.wallet-buy {
+  max-width: 640px;
+  padding: 28px;
+}
+
+.wallet-buy__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.wallet-buy__text {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.wallet-buy__form {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.wallet-buy__btn {
+  padding: 12px 28px;
+  height: 46px;
+}
+
+.wallet-buy__estimate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.wallet-buy__estimate strong {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.wallet-buy__estimate-unit {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 560px) {
+  .wallet-buy__form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .wallet-buy__btn {
+    width: 100%;
+  }
+}

@@ -1,0 +1,114 @@
+.video-detail-loading {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+}
+
+.video-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 18px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.video-detail-back:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.video-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.video-detail__player-wrap {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.video-detail__player {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  background: #000;
+}
+
+.video-detail__locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  min-height: 320px;
+  padding: 48px 24px;
+  background:
+    radial-gradient(600px 300px at 50% -50px, rgba(108, 94, 207, 0.22), transparent),
+    radial-gradient(500px 260px at 50% 120%, rgba(255, 64, 129, 0.12), transparent),
+    var(--bg-elevated);
+}
+
+.video-detail__lock-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--gradient-soft);
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.video-detail__lock-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.video-detail__locked h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.video-detail__locked p {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  max-width: 420px;
+  line-height: 1.65;
+  margin-bottom: 10px;
+}
+
+.video-detail__info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-detail__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.video-detail__title {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.video-detail__description {
+  color: var(--text-muted);
+  font-size: 0.98rem;
+  line-height: 1.75;
+  max-width: 760px;
+}
