@@ -267,6 +267,20 @@ export function WalletProvider({ children }) {
     };
   }, [account, disconnect]);
 
+  useEffect(() => {
+    if (!account || !contract) return;
+    const sync = () => refreshBalances(account, contract);
+    const interval = window.setInterval(sync, 10_000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") sync();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [account, contract, refreshBalances]);
+
   const value = useMemo(
     () => ({
       account,
