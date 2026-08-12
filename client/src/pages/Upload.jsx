@@ -9,7 +9,7 @@ import "./upload.css";
 
 export default function Upload() {
   const navigate = useNavigate();
-  const { account, contract, busy } = useWallet();
+  const { account, sponsorUpload, busy } = useWallet();
   const { success: toastSuccess, error: toastError } = useToast();
 
   const [title, setTitle] = useState("");
@@ -43,18 +43,10 @@ export default function Upload() {
     let registration;
     setPhase("registering");
     try {
-      const tx = await contract.uploadVideo(title.trim(), description.trim());
-      const receipt = await tx.wait();
-      const event = receipt.logs
-        .map((log) => {
-          try { return contract.interface.parseLog(log); } catch { return null; }
-        })
-        .find((entry) => entry?.name === "VideoUploaded");
-      if (!event) throw new Error("Registration event was not found");
-      registration = { number: Number(event.args.id), transactionHash: receipt.hash };
+      registration = await sponsorUpload(title.trim(), description.trim());
     } catch (err) {
       console.error(err);
-      toastError("On-chain registration failed. Please try again.");
+      toastError(err.message || "Sponsored registration failed. Please try again.");
       setPhase(null);
       return;
     }
@@ -107,7 +99,7 @@ export default function Upload() {
     <div className="page">
       <h1 className="page-heading">Upload Video</h1>
       <p className="page-subheading">
-        Your video is registered on the blockchain first, then stored in decentralised cloud storage.
+        Uploading costs 100 credits. Your wallet signs for free while the platform sponsors the blockchain gas.
       </p>
 
       <form className="upload-form card" onSubmit={handleSubmit}>

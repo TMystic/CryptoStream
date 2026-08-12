@@ -59,3 +59,14 @@ export function uploadFile(url, file, onProgress) {
 export const healthApi = {
   check: () => request("/health"),
 };
+
+export const transactionApi = {
+  upload: (payload) => request("/transactions/upload", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+  purchase: (payload) => request("/transactions/purchase", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+};

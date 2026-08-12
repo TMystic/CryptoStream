@@ -48,6 +48,10 @@ describe("StreamingService", function () {
   });
 
   describe("uploadVideo", function () {
+    beforeEach(async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
+    });
+
     it("registers a video and grants the uploader access", async function () {
       await streaming.connect(creator).uploadVideo("My Video", "A description");
 
@@ -74,6 +78,7 @@ describe("StreamingService", function () {
 
   describe("buyVideo", function () {
     beforeEach(async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
       await streaming.connect(creator).uploadVideo("Tutorial", "Learn stuff");
     });
 
@@ -118,6 +123,7 @@ describe("StreamingService", function () {
 
   describe("getVideo", function () {
     it("returns metadata only for addresses with access", async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
       await streaming.connect(creator).uploadVideo("Exclusive", "Secret content");
       await streaming.connect(buyer).buyCredits({ value: CREDIT_PRICE });
       await streaming.connect(buyer).buyVideo(1);
@@ -141,10 +147,61 @@ describe("StreamingService", function () {
 
   describe("hasVideoAccess", function () {
     it("returns access without exposing the complete access list", async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
       await streaming.connect(creator).uploadVideo("Exclusive", "Members only");
       expect(await streaming.hasVideoAccess(1, creator.address)).to.equal(true);
       expect(await streaming.hasVideoAccess(1, other.address)).to.equal(false);
       expect(await streaming.hasVideoAccess(999, other.address)).to.equal(false);
+    });
+  });
+
+  describe("sponsored actions", function () {
+    it("lets a relayer upload while charging the creator credits", async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
+      const nonce = await streaming.nonces(creator.address);
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+      const digest = await streaming.uploadAuthorizationHash(
+        creator.address, "Sponsored", "No user gas", nonce, deadline
+      );
+      const signature = await creator.signMessage(ethers.getBytes(digest));
+
+      await expect(
+        streaming.connect(other).sponsoredUploadVideo(
+          creator.address, "Sponsored", "No user gas", deadline, signature
+        )
+      ).to.emit(streaming, "VideoUploaded").withArgs(1, "Sponsored", "No user gas", creator.address);
+
+      expect(await streaming.balances(creator.address)).to.equal(CREDITS_PER_UNIT - VIDEO_COST);
+      expect(await streaming.nonces(creator.address)).to.equal(1);
+    });
+
+    it("lets a relayer purchase while charging the buyer credits", async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
+      await streaming.connect(creator).uploadVideo("Paid", "Content");
+      await streaming.connect(buyer).buyCredits({ value: CREDIT_PRICE });
+      const nonce = await streaming.nonces(buyer.address);
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+      const digest = await streaming.purchaseAuthorizationHash(buyer.address, 1, nonce, deadline);
+      const signature = await buyer.signMessage(ethers.getBytes(digest));
+
+      await expect(
+        streaming.connect(other).sponsoredBuyVideo(buyer.address, 1, deadline, signature)
+      ).to.emit(streaming, "VideoPurchased").withArgs(1, buyer.address);
+
+      expect(await streaming.balances(buyer.address)).to.equal(CREDITS_PER_UNIT - VIDEO_COST);
+      expect(await streaming.hasVideoAccess(1, buyer.address)).to.equal(true);
+    });
+
+    it("rejects an authorization replay", async function () {
+      await streaming.connect(creator).buyCredits({ value: CREDIT_PRICE });
+      const nonce = await streaming.nonces(creator.address);
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+      const digest = await streaming.uploadAuthorizationHash(creator.address, "Once", "Only", nonce, deadline);
+      const signature = await creator.signMessage(ethers.getBytes(digest));
+      await streaming.connect(other).sponsoredUploadVideo(creator.address, "Once", "Only", deadline, signature);
+      await expect(
+        streaming.connect(other).sponsoredUploadVideo(creator.address, "Once", "Only", deadline, signature)
+      ).to.be.revertedWithCustomError(streaming, "InvalidAuthorization");
     });
   });
 

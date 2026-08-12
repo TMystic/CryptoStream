@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { videoRouter } from "./video.routes.js";
+import { transactionRouter } from "./transaction.routes.js";
 
 export const apiRouter = Router();
 
@@ -12,3 +13,4 @@ apiRouter.get("/health", (_req, res) => {
 });
 
 apiRouter.use("/videos", videoRouter);
+apiRouter.use("/transactions", transactionRouter);
