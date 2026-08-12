@@ -174,6 +174,10 @@ export function WalletProvider({ children }) {
 
   const sponsorUpload = useCallback(async (title, description) => {
     if (!contract || !account) throw new Error("Wallet not connected");
+    const existing = await transactionApi.recoverUpload({ uploader: account, title, description });
+    if (existing.registration) {
+      return existing.registration;
+    }
     const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
     const nonce = await contract.nonces(account);
     const digest = await contract.uploadAuthorizationHash(account, title, description, nonce, deadline);

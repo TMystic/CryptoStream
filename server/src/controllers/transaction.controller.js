@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { validate } from "../middleware/validate.middleware.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { relayPurchase, relayUpload } from "../services/blockchain.service.js";
+import { findUploadRegistration, relayPurchase, relayUpload } from "../services/blockchain.service.js";
 
 const address = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 const signature = z.string().regex(/^0x[a-fA-F0-9]+$/);
@@ -13,6 +13,20 @@ const uploadSchema = z.object({ body: z.object({
   deadline: z.coerce.number().int().positive(),
   signature,
 }) });
+
+const recoverUploadSchema = z.object({ body: z.object({
+  uploader: address,
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(1).max(2000),
+}) });
+
+export const recoverUpload = [
+  validate(recoverUploadSchema),
+  asyncHandler(async (req, res) => {
+    const registration = await findUploadRegistration(req.body);
+    res.json({ registration });
+  }),
+];
 
 export const sponsorUpload = [
   validate(uploadSchema),

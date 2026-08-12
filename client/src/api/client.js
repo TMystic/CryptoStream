@@ -61,6 +61,10 @@ export const healthApi = {
 };
 
 export const transactionApi = {
+  recoverUpload: (payload) => request("/transactions/upload/recover", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
   upload: (payload) => request("/transactions/upload", {
     method: "POST",
     body: JSON.stringify(payload),

@@ -7,6 +7,8 @@ const abi = [
   "function hasVideoAccess(uint256 videoId, address viewer) view returns (bool)",
   "function sponsoredUploadVideo(address uploader,string title,string description,uint256 deadline,bytes signature)",
   "function sponsoredBuyVideo(address buyer,uint256 videoNumber,uint256 deadline,bytes signature)",
+  "function getVideosByAddress(address owner) view returns (uint256[])",
+  "function videos(uint256 id) view returns (uint256,string,string,address)",
 ];
 
 const iface = new Interface(abi);
@@ -42,6 +44,25 @@ export async function relayUpload({ uploader, title, description, deadline, sign
   return { transactionHash: receipt.hash, number: Number(event.args.id) };
 }
 
+export async function findUploadRegistration({ uploader, title, description }) {
+  const { contract: streaming } = getChainClient();
+  const ids = await streaming.getVideosByAddress(uploader);
+
+  for (let index = ids.length - 1; index >= 0; index -= 1) {
+    const number = Number(ids[index]);
+    const registered = await streaming.videos(number);
+    if (
+      registered[3].toLowerCase() === uploader.toLowerCase() &&
+      registered[1] === title &&
+      registered[2] === description
+    ) {
+      return { transactionHash: `recovered:${number}`, number, recovered: true };
+    }
+  }
+
+  return null;
+}
+
 export async function relayPurchase({ buyer, videoNumber, deadline, signature }) {
   const streaming = getRelayerContract();
   await streaming.sponsoredBuyVideo.staticCall(buyer, videoNumber, deadline, signature);
@@ -51,7 +72,19 @@ export async function relayPurchase({ buyer, videoNumber, deadline, signature })
 }
 
 export async function verifyVideoRegistration({ transactionHash, number, title, description, uploader }) {
-  const { provider: rpc } = getChainClient();
+  const { provider: rpc, contract: streaming } = getChainClient();
+
+  if (transactionHash === `recovered:${number}`) {
+    const registered = await streaming.videos(number);
+    const matches =
+      Number(registered[0]) === number &&
+      registered[1] === title &&
+      registered[2] === description &&
+      registered[3].toLowerCase() === uploader.toLowerCase();
+    if (!matches) throw new AppError(400, "Uploaded metadata does not match the on-chain registration");
+    return;
+  }
+
   const receipt = await rpc.getTransactionReceipt(transactionHash);
   if (!receipt || receipt.status !== 1) throw new AppError(400, "Registration transaction is not confirmed");
   if (receipt.to?.toLowerCase() !== env.contractAddress.toLowerCase()) {

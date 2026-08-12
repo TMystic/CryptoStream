@@ -1,38 +1,51 @@
 import { randomUUID } from "crypto";
-import { getBucket } from "../config/firebase.js";
+import { del, head, issueSignedToken, presignUrl } from "@vercel/blob";
 
-export async function createUploadUrl({ contentType, originalName }) {
-  const bucket = getBucket();
+export async function createUploadUrl({ contentType, originalName, fileSize }) {
   const objectName = `videos/${Date.now()}-${randomUUID()}-${sanitize(originalName)}`;
   const expiresAt = Date.now() + 15 * 60 * 1000;
-  const [url] = await bucket.file(objectName).getSignedUrl({
-    version: "v4",
-    action: "write",
-    expires: expiresAt,
-    contentType,
+  const token = await issueSignedToken({
+    pathname: objectName,
+    operations: ["put"],
+    validUntil: expiresAt,
+    allowedContentTypes: [contentType],
+    maximumSizeInBytes: fileSize,
   });
-  return { objectName, url, expiresAt };
+  const { presignedUrl } = await presignUrl(token, {
+    access: "private",
+    operation: "put",
+    pathname: objectName,
+    validUntil: expiresAt,
+    allowedContentTypes: [contentType],
+    maximumSizeInBytes: fileSize,
+  });
+  return { objectName, url: presignedUrl, expiresAt };
 }
 
 export async function inspectVideoFile(objectName) {
-  const bucket = getBucket();
-  const [metadata] = await bucket.file(objectName).getMetadata();
+  const metadata = await head(objectName);
   return { size: Number(metadata.size), contentType: metadata.contentType };
 }
 
 export async function createPlaybackUrl(objectName, expiresInMs = 10 * 60 * 1000) {
-  const bucket = getBucket();
-  const [url] = await bucket.file(objectName).getSignedUrl({
-    action: "read",
-    expires: Date.now() + expiresInMs,
+  const expiresAt = Date.now() + expiresInMs;
+  const token = await issueSignedToken({
+    pathname: objectName,
+    operations: ["get"],
+    validUntil: expiresAt,
   });
-  return url;
+  const { presignedUrl } = await presignUrl(token, {
+    access: "private",
+    operation: "get",
+    pathname: objectName,
+    validUntil: expiresAt,
+  });
+  return presignedUrl;
 }
 
 export async function deleteVideoFile(objectName) {
   if (!objectName) return;
-  const bucket = getBucket();
-  await bucket.file(objectName).delete({ ignoreNotFound: true });
+  await del(objectName);
 }
 
 function sanitize(name) {

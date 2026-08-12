@@ -14,7 +14,10 @@ const uploadRequestSchema = z.object({
     description: z.string().trim().min(1, "Description is required").max(2000, "Description too long"),
     number: z.coerce.number().int().positive(),
     uploader: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid uploader address"),
-    transactionHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Invalid transaction hash"),
+    transactionHash: z.string().refine(
+      (value) => /^0x[a-fA-F0-9]{64}$/.test(value) || /^recovered:\d+$/.test(value),
+      "Invalid transaction hash"
+    ),
     originalName: z.string().trim().min(1).max(180),
     contentType: z.string().regex(/^video\/[a-zA-Z0-9.+-]+$/, "Invalid video content type"),
     fileSize: z.coerce.number().int().positive().max(1024 * 1024 * 1024, "Maximum file size is 1 GB"),
@@ -39,7 +42,7 @@ export const requestVideoUpload = [
     }
 
     await verifyVideoRegistration({ transactionHash, number, title, description, uploader });
-    const upload = await createUploadUrl({ contentType, originalName });
+    const upload = await createUploadUrl({ contentType, originalName, fileSize });
     await PendingUpload.create({
       number, title, description, uploader, transactionHash,
       storagePath: upload.objectName, contentType, expectedSize: fileSize,
@@ -50,7 +53,12 @@ export const requestVideoUpload = [
 ];
 
 const finalizeSchema = z.object({
-  body: z.object({ transactionHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/) }),
+  body: z.object({
+    transactionHash: z.string().refine(
+      (value) => /^0x[a-fA-F0-9]{64}$/.test(value) || /^recovered:\d+$/.test(value),
+      "Invalid transaction hash"
+    ),
+  }),
 });
 
 export const finalizeVideoUpload = [
