@@ -14,6 +14,11 @@ export function errorHandler(err, _req, res, _next) {
     return res.status(409).json({ error: "A video with this blockchain registration already exists" });
   }
 
+  if (err.name === "MongooseServerSelectionError" || err.name === "MongoServerError") {
+    console.error("[database]", err.message);
+    return res.status(503).json({ error: "Database connection is unavailable" });
+  }
+
   console.error("[error]", err);
   return res.status(500).json({ error: "Internal server error" });
 }
