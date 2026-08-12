@@ -50,7 +50,11 @@ export function uploadFile(url, file, onProgress) {
     xhr.addEventListener("load", () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
-          resolve(JSON.parse(xhr.responseText));
+          const uploaded = JSON.parse(xhr.responseText);
+          resolve({
+            ...uploaded,
+            pathname: uploaded.url ? decodeURIComponent(new URL(uploaded.url).pathname.slice(1)) : uploaded.pathname,
+          });
         } catch {
           resolve({});
         }

@@ -24,10 +24,17 @@ export async function createUploadUrl({ contentType, originalName, fileSize }) {
 }
 
 export async function inspectVideoFile(objectName, uploadedPathname) {
-  const pathname = uploadedPathname
+  let pathname = uploadedPathname
     ? validateUploadedPath(objectName, uploadedPathname)
     : await resolveUploadedPath(objectName);
-  const metadata = await head(pathname);
+  let metadata;
+  try {
+    metadata = await head(pathname);
+  } catch (error) {
+    if (error?.name !== "BlobNotFoundError") throw error;
+    pathname = await resolveUploadedPath(objectName);
+    metadata = await head(pathname);
+  }
   return { pathname, size: Number(metadata.size), contentType: metadata.contentType };
 }
 
