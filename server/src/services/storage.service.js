@@ -10,6 +10,7 @@ export async function createUploadUrl({ contentType, originalName, fileSize }) {
     validUntil: expiresAt,
     allowedContentTypes: [contentType],
     maximumSizeInBytes: fileSize,
+    addRandomSuffix: false,
   });
   const { presignedUrl } = await presignUrl(token, {
     access: "private",
