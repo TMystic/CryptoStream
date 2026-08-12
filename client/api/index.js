@@ -1,6 +1,6 @@
 import app from "../../server/src/index.js";
 
-// Client-root entrypoint ensures Vercel rebuilds when the shared API changes.
+// Client-root production entrypoint bundles the shared Express API for Vercel.
 export default function handler(req, res) {
   const path = Array.isArray(req.query.path) ? req.query.path.join("/") : req.query.path || "";
   const params = new URLSearchParams();
