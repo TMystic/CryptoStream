@@ -16,15 +16,6 @@ export const env = {
   contractAddress: process.env.CONTRACT_ADDRESS || process.env.VITE_CONTRACT_ADDRESS || "",
   chainId: Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || 11155111),
   relayerPrivateKey: process.env.RELAYER_PRIVATE_KEY || "",
-  firebase: {
-    projectId: process.env.FIREBASE_PROJECT_ID || "",
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "",
-    privateKey:
-      process.env.FIREBASE_PRIVATE_KEY_BASE64
-        ? Buffer.from(process.env.FIREBASE_PRIVATE_KEY_BASE64, "base64").toString("utf8")
-        : (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
-  },
 };
 
 if (!Number.isInteger(env.port) || env.port < 1 || env.port > 65535) {

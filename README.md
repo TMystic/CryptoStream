@@ -6,7 +6,7 @@
 
 Upload, discover, and monetize videos with **blockchain-enforced access control** — pay with test ETH, earn on-chain credits, and stream with MetaMask.
 
-**Solidity** · **React** · **Express** · **MongoDB** · **Firebase Storage**
+**Solidity** · **React** · **Express** · **MongoDB** · **Vercel Blob**
 
 </div>
 
@@ -56,7 +56,7 @@ flowchart TD
 
     subgraph Server["Express API"]
         I[Verified upload request + finalize]
-        J[Private Firebase Storage - direct signed upload]
+        J[Private Vercel Blob - direct signed upload]
         K[MongoDB - video metadata]
         L[GET /api/videos + search]
     end
@@ -67,7 +67,7 @@ flowchart TD
     A --> L --> D
 ```
 
-**Upload flow:** the frontend confirms `uploadVideo` on-chain, then sends the transaction hash with the file. The API verifies the receipt and its metadata before placing the file in private Firebase Storage and saving the verified chain ID in MongoDB.
+**Upload flow:** the frontend confirms the sponsored on-chain registration, then requests a private signed upload URL. The browser sends the file directly to Vercel Blob, and the API saves verified metadata in MongoDB.
 
 **Access flow:** clicking *Play* checks `hasVideoAccess`. An entitled viewer signs a free, five-minute wallet message; the API verifies the signature and current on-chain access before issuing a short-lived private playback URL. Otherwise the viewer can spend 100 credits via `buyVideo` to gain permanent access.
 
@@ -78,7 +78,7 @@ flowchart TD
 - **Modern React frontend** — Vite + React 18, React Router, ethers v6, polished dark design system
 - **Hardened smart contract** — Solidity 0.8.24, OpenZeppelin `Ownable`, custom errors, metadata bounds, direct access checks, and 15 unit tests
 - **Structured Express API** — verified chain receipts, signed playback authorization, zod validation, rate limiting, security headers, centralized errors, and pagination
-- **Private video delivery** — Firebase objects are private; ten-minute playback URLs are issued only after wallet signature and live contract verification
+- **Private video delivery** — Blob objects are private; ten-minute playback URLs are issued only after wallet signature and live contract verification
 - **Live search** — debounced, case-insensitive title search with proper regex escaping
 - **MetaMask integration** — account/chain change listeners, transaction feedback, error extraction
 - **Polished UX** — skeleton loaders, toast notifications, purchase modals, drag & drop uploads, empty states, responsive mobile layout
@@ -96,7 +96,7 @@ flowchart TD
 │       └── contracts/          # Compiled contract ABI
 ├── server/                     # Express API
 │   └── src/
-│       ├── config/             # env validation, MongoDB, Firebase Admin
+│       ├── config/             # environment and MongoDB configuration
 │       ├── controllers/        # Request handlers with zod validation
 │       ├── middleware/         # errors, 404s, validation, security
 │       ├── models/             # Mongoose schemas
@@ -117,7 +117,7 @@ flowchart TD
 | ---------- | --------------------------------------------------------------------------- |
 | Frontend   | React 18, Vite 6, React Router 7, ethers v6                                  |
 | Backend    | Node.js, Express 4, Multer (memory storage), zod                             |
-| Storage    | Firebase Admin SDK (video files), MongoDB + Mongoose (metadata)              |
+| Storage    | Private Vercel Blob (video files), MongoDB + Mongoose (metadata)              |
 | Blockchain | Solidity 0.8.24, OpenZeppelin v5, Hardhat, ethers v6, MetaMask               |
 | Testing    | Node test runner (server), Hardhat + Chai (contracts)                        |
 | Deploy     | Vercel (`@vercel/node` + static build), npm workspaces                       |
@@ -128,7 +128,7 @@ flowchart TD
 
 - [Node.js](https://nodejs.org/) >= 20.19
 - A [MongoDB](https://www.mongodb.com/atlas) database (local or Atlas)
-- A [Firebase](https://console.firebase.google.com/) project with **Storage** enabled
+- A private [Vercel Blob](https://vercel.com/docs/vercel-blob) store
 - [MetaMask](https://metamask.io/) with a funded test-network account (e.g. Sepolia)
 
 ### Environment Variables
@@ -146,11 +146,9 @@ CORS_ORIGIN=http://localhost:5173
 
 MONGO_SERVER=mongodb+srv://<user>:<password>@cluster.mongodb.net/cryptostream
 
-# Firebase Admin SDK — Firebase console -> Project settings -> Service accounts -> Generate new private key
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY_BASE64=<base64-encoded-private-key>   # recommended
-FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+# Added automatically when a private Blob store is connected to the Vercel project
+BLOB_READ_WRITE_TOKEN=<vercel-blob-token>
+BLOB_STORE_ID=<vercel-blob-store-id>
 
 # Read-only RPC used by the API for receipt/access verification
 RPC_URL=https://sepolia.infura.io/v3/your-key
@@ -163,8 +161,6 @@ VITE_CHAIN_ID=11155111
 VITE_CHAIN_NAME=Sepolia
 VITE_API_URL=            # leave empty to use the Vite dev proxy (/api)
 ```
-
-> **Private key:** either base64-encode the service account key (recommended) or paste it raw with `\n` line breaks into `FIREBASE_PRIVATE_KEY`.
 
 ### Installation & Development
 
@@ -179,18 +175,6 @@ cp .env.example .env
 
 # 3. Start everything — API on :3000, React app on :5173
 npm run dev
-```
-
-If upgrading an existing CryptoStream database, revoke legacy public download tokens and backfill private object paths once:
-
-```bash
-npm run migrate:private-storage --workspace=server
-```
-
-Before browser uploads, replace the example production domain in `firebase-storage-cors.json` and apply it to the Firebase Storage bucket with the Google Cloud CLI:
-
-```bash
-gcloud storage buckets update gs://YOUR_BUCKET --cors-file=firebase-storage-cors.json
 ```
 
 Open `http://localhost:5173` (Vite proxies `/api` to the Express server automatically).
@@ -259,7 +243,7 @@ Fetch one video by its numeric id.
 
 ### `POST /api/videos/upload-request`
 
-Verifies a confirmed `VideoUploaded` transaction and returns a 15-minute signed Firebase upload URL. The browser uploads directly to storage, avoiding serverless request-size limits.
+Verifies a confirmed `VideoUploaded` registration and returns a 15-minute signed private Blob upload URL. The browser uploads directly to storage, avoiding serverless request-size limits.
 
 | Field         | Type   | Required | Description      |
 | ------------- | ------ | -------- | ---------------- |
@@ -326,7 +310,7 @@ npm i -g vercel
 vercel
 ```
 
-Configure the same environment variables from `.env` in Vercel's dashboard (**Settings → Environment Variables**), including `MONGO_SERVER`, Firebase Admin credentials, `RPC_URL`, both contract address variables, and the chain variables.
+Configure the same environment variables from `.env` in Vercel's dashboard (**Settings → Environment Variables**), including `MONGO_SERVER`, `RPC_URL`, the relayer key, both contract address variables, and the chain variables. Connecting the Blob store creates its storage variables automatically.
 
 ## Roadmap
 

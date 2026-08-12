@@ -13,7 +13,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
  *  - the credit economy (users top up with test ETH and spend credits)
  *  - access control (per-video permission lists stored on-chain)
  *
- * Video files themselves live off-chain (Firebase Storage); the contract
+ * Video files themselves live off-chain (private object storage); the contract
  * registers metadata and enforces who is allowed to stream them.
  */
 contract StreamingService is Ownable {

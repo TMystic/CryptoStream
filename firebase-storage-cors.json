@@ -1,8 +1,0 @@
-[
-  {
-    "origin": ["http://localhost:5173", "https://your-production-domain.example"],
-    "method": ["PUT"],
-    "responseHeader": ["Content-Type", "Content-Length"],
-    "maxAgeSeconds": 3600
-  }
-]
