@@ -7,7 +7,7 @@ import "./wallet.css";
 export default function Wallet() {
   const { account, credits, ethBalance, buyCredits, busy } = useWallet();
   const { error: toastError } = useToast();
-  const [amount, setAmount] = useState("0.001");
+  const [amount, setAmount] = useState("");
 
   const handleBuy = async (e) => {
     e.preventDefault();
@@ -83,7 +83,7 @@ export default function Wallet() {
               step="0.001"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="min 0.001"
+              placeholder="Minimum 0.001 ETH"
             />
           </div>
           <button type="submit" className="btn btn--primary wallet-buy__btn" disabled={busy}>

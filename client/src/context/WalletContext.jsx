@@ -93,14 +93,47 @@ export function WalletProvider({ children }) {
 
       setBusy(true);
       try {
-        const tx = await contract.buyCredits({ value: ethers.parseEther(amountEth) });
+        const value = ethers.parseEther(amountEth);
+        const provider = contract.runner?.provider;
+        if (!provider) throw new Error("Wallet provider is unavailable. Reconnect your wallet.");
+
+        const [minimum, walletBalance] = await Promise.all([
+          contract.CREDIT_PRICE(),
+          provider.getBalance(account),
+        ]);
+        if (value < minimum) {
+          throw new Error(`Minimum purchase is ${ethers.formatEther(minimum)} ETH`);
+        }
+
+        // A read-only simulation produces a useful contract error before MetaMask opens.
+        await contract.buyCredits.staticCall({ value });
+
+        let gasLimit;
+        try {
+          const estimate = await contract.buyCredits.estimateGas({ value });
+          gasLimit = (estimate * 120n) / 100n;
+        } catch {
+          // Some wallet RPCs fail to estimate payable calls even when eth_call succeeds.
+          gasLimit = 150_000n;
+        }
+
+        const feeData = await provider.getFeeData();
+        const feePerGas = feeData.maxFeePerGas || feeData.gasPrice || 0n;
+        const requiredBalance = value + gasLimit * feePerGas;
+        if (walletBalance < requiredBalance) {
+          throw new Error(
+            `Insufficient Sepolia ETH. You need about ${Number(ethers.formatEther(requiredBalance)).toFixed(6)} ETH including gas.`
+          );
+        }
+
+        const tx = await contract.buyCredits({ value, gasLimit });
         await tx.wait();
         await refreshBalances(account, contract);
         toastSuccess(`Purchased credits with ${amountEth} ETH`);
       } catch (err) {
         const reason = extractError(err);
         toastError(`Credit purchase failed: ${reason}`);
-        throw err;
+        throw new Error(reason, { cause: err });
       } finally {
         setBusy(false);
       }
@@ -223,6 +256,15 @@ export function WalletProvider({ children }) {
 
 function extractError(err) {
   const message = err?.shortMessage || err?.message || "Unknown error";
+  if (err?.code === 4001 || err?.code === "ACTION_REJECTED") {
+    return "transaction was cancelled in MetaMask";
+  }
+  if (err?.code === "INSUFFICIENT_FUNDS" || /insufficient funds/i.test(message)) {
+    return "not enough Sepolia ETH for the purchase and network fee";
+  }
+  if (err?.code === "CALL_EXCEPTION" && !err?.data) {
+    return "the wallet could not simulate this purchase; reconnect MetaMask and confirm Sepolia is selected";
+  }
   if (message.includes("insufficient credits") || message.includes("InsufficientCredits")) {
     return "not enough credits — top up in the Wallet page";
   }
