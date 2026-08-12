@@ -3,6 +3,7 @@ import { BrowserProvider, Contract, ethers, formatEther } from "ethers";
 import { CHAIN_ID, CHAIN_NAME, CONTRACT_ADDRESS } from "../config.js";
 import contractAbi from "../contracts/StreamingService.json";
 import { useToast } from "./ToastContext.jsx";
+import { transactionApi } from "../api/client.js";
 
 const WalletContext = createContext(null);
 
@@ -152,8 +153,12 @@ export function WalletProvider({ children }) {
 
       setBusy(true);
       try {
-        const tx = await contract.buyVideo(videoNumber);
-        await tx.wait();
+        const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
+        const nonce = await contract.nonces(account);
+        const digest = await contract.purchaseAuthorizationHash(account, videoNumber, nonce, deadline);
+        const signer = await new BrowserProvider(window.ethereum).getSigner();
+        const signature = await signer.signMessage(ethers.getBytes(digest));
+        await transactionApi.purchase({ buyer: account, videoNumber, deadline, signature });
         await refreshBalances(account, contract);
         toastSuccess("Video unlocked successfully!");
         return true;
@@ -166,6 +171,18 @@ export function WalletProvider({ children }) {
     },
     [contract, account, refreshBalances, toastSuccess, toastError]
   );
+
+  const sponsorUpload = useCallback(async (title, description) => {
+    if (!contract || !account) throw new Error("Wallet not connected");
+    const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
+    const nonce = await contract.nonces(account);
+    const digest = await contract.uploadAuthorizationHash(account, title, description, nonce, deadline);
+    const signer = await new BrowserProvider(window.ethereum).getSigner();
+    const signature = await signer.signMessage(ethers.getBytes(digest));
+    const result = await transactionApi.upload({ uploader: account, title, description, deadline, signature });
+    await refreshBalances(account, contract);
+    return result;
+  }, [contract, account, refreshBalances]);
 
   const hasAccess = useCallback(
     async (videoNumber) => {
@@ -234,6 +251,7 @@ export function WalletProvider({ children }) {
       hasAccess,
       getMyVideoIds,
       authorizePlayback,
+      sponsorUpload,
       refreshBalances,
     }),
     [
@@ -252,6 +270,7 @@ export function WalletProvider({ children }) {
       hasAccess,
       getMyVideoIds,
       authorizePlayback,
+      sponsorUpload,
       refreshBalances,
     ]
   );

@@ -1,15 +1,18 @@
-import { Contract, Interface, JsonRpcProvider, getAddress, verifyMessage } from "ethers";
+import { Contract, Interface, JsonRpcProvider, Wallet, getAddress, verifyMessage } from "ethers";
 import { env } from "../config/env.js";
 import { AppError } from "../utils/AppError.js";
 
 const abi = [
   "event VideoUploaded(uint256 indexed id, string title, string description, address indexed uploader)",
   "function hasVideoAccess(uint256 videoId, address viewer) view returns (bool)",
+  "function sponsoredUploadVideo(address uploader,string title,string description,uint256 deadline,bytes signature)",
+  "function sponsoredBuyVideo(address buyer,uint256 videoNumber,uint256 deadline,bytes signature)",
 ];
 
 const iface = new Interface(abi);
 let provider;
 let contract;
+let relayerContract;
 
 function getChainClient() {
   if (!env.rpcUrl || !env.contractAddress) {
@@ -18,6 +21,33 @@ function getChainClient() {
   provider ||= new JsonRpcProvider(env.rpcUrl, env.chainId, { staticNetwork: true });
   contract ||= new Contract(env.contractAddress, abi, provider);
   return { provider, contract };
+}
+
+function getRelayerContract() {
+  const { provider: rpc } = getChainClient();
+  if (!env.relayerPrivateKey) throw new AppError(503, "Sponsored transactions are not configured");
+  relayerContract ||= new Contract(env.contractAddress, abi, new Wallet(env.relayerPrivateKey, rpc));
+  return relayerContract;
+}
+
+export async function relayUpload({ uploader, title, description, deadline, signature }) {
+  const streaming = getRelayerContract();
+  await streaming.sponsoredUploadVideo.staticCall(uploader, title, description, deadline, signature);
+  const tx = await streaming.sponsoredUploadVideo(uploader, title, description, deadline, signature);
+  const receipt = await tx.wait();
+  const event = receipt.logs.map((log) => {
+    try { return iface.parseLog(log); } catch { return null; }
+  }).find((entry) => entry?.name === "VideoUploaded");
+  if (!event) throw new AppError(500, "Sponsored upload was confirmed without a registration event");
+  return { transactionHash: receipt.hash, number: Number(event.args.id) };
+}
+
+export async function relayPurchase({ buyer, videoNumber, deadline, signature }) {
+  const streaming = getRelayerContract();
+  await streaming.sponsoredBuyVideo.staticCall(buyer, videoNumber, deadline, signature);
+  const tx = await streaming.sponsoredBuyVideo(buyer, videoNumber, deadline, signature);
+  const receipt = await tx.wait();
+  return { transactionHash: receipt.hash };
 }
 
 export async function verifyVideoRegistration({ transactionHash, number, title, description, uploader }) {

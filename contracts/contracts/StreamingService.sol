@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title StreamingService
@@ -15,6 +17,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * registers metadata and enforces who is allowed to stream them.
  */
 contract StreamingService is Ownable {
+    using MessageHashUtils for bytes32;
     /* ------------------------------------------------------------------ */
     /* Errors                                                              */
     /* ------------------------------------------------------------------ */
@@ -26,6 +29,8 @@ contract StreamingService is Ownable {
     error AccessDenied(uint256 id, address viewer);
     error InvalidMetadata();
     error InsufficientCredits(uint256 balance, uint256 required);
+    error AuthorizationExpired();
+    error InvalidAuthorization();
 
     /* ------------------------------------------------------------------ */
     /* Types                                                               */
@@ -57,6 +62,9 @@ contract StreamingService is Ownable {
     /// @dev Price in credits to unlock one video.
     uint256 public constant VIDEO_COST = 100;
 
+    /// @dev Price in credits to register one upload.
+    uint256 public constant UPLOAD_COST = 100;
+
     /// @dev Address that receives all ETH from credit top-ups.
     address public immutable recipient;
 
@@ -74,6 +82,9 @@ contract StreamingService is Ownable {
 
     /// @dev Ids of videos owned or purchased by an address.
     mapping(address => uint256[]) public videosByAddress;
+
+    /// @dev Replay protection for sponsored actions.
+    mapping(address => uint256) public nonces;
 
     /* ------------------------------------------------------------------ */
     /* Events                                                              */
@@ -128,51 +139,127 @@ contract StreamingService is Ownable {
      * @dev Registers a new video and grants the uploader permanent access.
      */
     function uploadVideo(string memory _title, string memory _description) public {
+        _uploadVideo(msg.sender, _title, _description);
+    }
+
+    function sponsoredUploadVideo(
+        address uploader,
+        string memory title,
+        string memory description,
+        uint256 deadline,
+        bytes memory signature
+    ) public {
+        uint256 nonce = nonces[uploader];
+        bytes32 digest = uploadAuthorizationHash(uploader, title, description, nonce, deadline);
+        _verifyAuthorization(uploader, digest, deadline, signature);
+        nonces[uploader] = nonce + 1;
+        _uploadVideo(uploader, title, description);
+    }
+
+    function _uploadVideo(address uploader, string memory _title, string memory _description) internal {
         if (
             bytes(_title).length == 0 || bytes(_title).length > 120 ||
             bytes(_description).length == 0 || bytes(_description).length > 2000
         ) {
             revert InvalidMetadata();
         }
+        if (balances[uploader] < UPLOAD_COST) {
+            revert InsufficientCredits(balances[uploader], UPLOAD_COST);
+        }
+        balances[uploader] -= UPLOAD_COST;
         videoCount++;
         uint256 id = videoCount;
 
-        videos[id] = Video({id: id, title: _title, description: _description, uploader: msg.sender});
+        videos[id] = Video({id: id, title: _title, description: _description, uploader: uploader});
 
         AccessControl storage ac = videoAccess[id];
-        ac.owner = msg.sender;
-        ac.hasAccess[msg.sender] = true;
-        ac.accessList.push(msg.sender);
+        ac.owner = uploader;
+        ac.hasAccess[uploader] = true;
+        ac.accessList.push(uploader);
 
-        videosByAddress[msg.sender].push(id);
+        videosByAddress[uploader].push(id);
 
-        emit VideoUploaded(id, _title, _description, msg.sender);
+        emit VideoUploaded(id, _title, _description, uploader);
     }
 
     /**
      * @dev Unlocks a video for the caller by spending `VIDEO_COST` credits.
      */
     function buyVideo(uint256 videoNumber) public {
+        _buyVideo(msg.sender, videoNumber);
+    }
+
+    function sponsoredBuyVideo(
+        address buyer,
+        uint256 videoNumber,
+        uint256 deadline,
+        bytes memory signature
+    ) public {
+        uint256 nonce = nonces[buyer];
+        bytes32 digest = purchaseAuthorizationHash(buyer, videoNumber, nonce, deadline);
+        _verifyAuthorization(buyer, digest, deadline, signature);
+        nonces[buyer] = nonce + 1;
+        _buyVideo(buyer, videoNumber);
+    }
+
+    function _buyVideo(address buyer, uint256 videoNumber) internal {
         if (videoNumber == 0 || videoNumber > videoCount) {
             revert VideoDoesNotExist(videoNumber);
         }
-        if (videoAccess[videoNumber].hasAccess[msg.sender]) {
+        if (videoAccess[videoNumber].hasAccess[buyer]) {
             revert AlreadyHasAccess(videoNumber);
         }
-        if (balances[msg.sender] < VIDEO_COST) {
-            revert InsufficientCredits(balances[msg.sender], VIDEO_COST);
+        if (balances[buyer] < VIDEO_COST) {
+            revert InsufficientCredits(balances[buyer], VIDEO_COST);
         }
 
         // effects
-        balances[msg.sender] -= VIDEO_COST;
+        balances[buyer] -= VIDEO_COST;
 
         AccessControl storage ac = videoAccess[videoNumber];
-        ac.hasAccess[msg.sender] = true;
-        ac.accessList.push(msg.sender);
+        ac.hasAccess[buyer] = true;
+        ac.accessList.push(buyer);
 
-        videosByAddress[msg.sender].push(videoNumber);
+        videosByAddress[buyer].push(videoNumber);
 
-        emit VideoPurchased(videoNumber, msg.sender);
+        emit VideoPurchased(videoNumber, buyer);
+    }
+
+    function uploadAuthorizationHash(
+        address uploader,
+        string memory title,
+        string memory description,
+        uint256 nonce,
+        uint256 deadline
+    ) public view returns (bytes32) {
+        return keccak256(abi.encode(
+            "CRYPTOSTREAM_UPLOAD", address(this), block.chainid, uploader,
+            keccak256(bytes(title)), keccak256(bytes(description)), nonce, deadline
+        ));
+    }
+
+    function purchaseAuthorizationHash(
+        address buyer,
+        uint256 videoNumber,
+        uint256 nonce,
+        uint256 deadline
+    ) public view returns (bytes32) {
+        return keccak256(abi.encode(
+            "CRYPTOSTREAM_PURCHASE", address(this), block.chainid, buyer,
+            videoNumber, nonce, deadline
+        ));
+    }
+
+    function _verifyAuthorization(
+        address signer,
+        bytes32 digest,
+        uint256 deadline,
+        bytes memory signature
+    ) internal view {
+        if (block.timestamp > deadline) revert AuthorizationExpired();
+        if (ECDSA.recover(digest.toEthSignedMessageHash(), signature) != signer) {
+            revert InvalidAuthorization();
+        }
     }
 
     /* ------------------------------------------------------------------ */
