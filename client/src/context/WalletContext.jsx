@@ -104,6 +104,11 @@ export function WalletProvider({ children }) {
         if (value < minimum) {
           throw new Error(`Minimum purchase is ${ethers.formatEther(minimum)} ETH`);
         }
+        if (walletBalance <= value) {
+          throw new Error(
+            `Insufficient Sepolia ETH. Your wallet has ${Number(ethers.formatEther(walletBalance)).toFixed(6)} ETH, which must cover both the purchase and gas.`
+          );
+        }
 
         // A read-only simulation produces a useful contract error before MetaMask opens.
         await contract.buyCredits.staticCall({ value });
@@ -262,7 +267,7 @@ function extractError(err) {
   if (err?.code === "INSUFFICIENT_FUNDS" || /insufficient funds/i.test(message)) {
     return "not enough Sepolia ETH for the purchase and network fee";
   }
-  if (err?.code === "CALL_EXCEPTION" && !err?.data) {
+  if (err?.code === "CALL_EXCEPTION" && (!err?.data || err.data === "0x")) {
     return "the wallet could not simulate this purchase; reconnect MetaMask and confirm Sepolia is selected";
   }
   if (message.includes("insufficient credits") || message.includes("InsufficientCredits")) {
