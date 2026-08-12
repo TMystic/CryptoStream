@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BrowserProvider, Contract, ethers, formatEther } from "ethers";
-import { CHAIN_ID, CHAIN_NAME, CONTRACT_ADDRESS } from "../config.js";
+import { CHAIN_ID, CHAIN_NAME, CONTRACT_ADDRESS, VIDEO_COST_CREDITS } from "../config.js";
 import contractAbi from "../contracts/StreamingService.json";
 import { useToast } from "./ToastContext.jsx";
 import { transactionApi } from "../api/client.js";
@@ -153,6 +153,12 @@ export function WalletProvider({ children }) {
 
       setBusy(true);
       try {
+        const currentCredits = Number(await contract.balances(account));
+        if (currentCredits < VIDEO_COST_CREDITS) {
+          throw new Error(
+            `Insufficient credits. This wallet has ${currentCredits} credits and needs ${VIDEO_COST_CREDITS}.`
+          );
+        }
         const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
         const nonce = await contract.nonces(account);
         const digest = await contract.purchaseAuthorizationHash(account, videoNumber, nonce, deadline);

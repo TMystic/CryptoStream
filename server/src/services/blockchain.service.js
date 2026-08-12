@@ -3,6 +3,15 @@ import { env } from "../config/env.js";
 import { AppError } from "../utils/AppError.js";
 
 const abi = [
+  "error InvalidAmount(uint256 sent, uint256 minimum)",
+  "error TransferFailed()",
+  "error VideoDoesNotExist(uint256 id)",
+  "error AlreadyHasAccess(uint256 id)",
+  "error AccessDenied(uint256 id,address viewer)",
+  "error InvalidMetadata()",
+  "error InsufficientCredits(uint256 balance,uint256 required)",
+  "error AuthorizationExpired()",
+  "error InvalidAuthorization()",
   "event VideoUploaded(uint256 indexed id, string title, string description, address indexed uploader)",
   "function hasVideoAccess(uint256 videoId, address viewer) view returns (bool)",
   "function sponsoredUploadVideo(address uploader,string title,string description,uint256 deadline,bytes signature)",
@@ -33,15 +42,19 @@ function getRelayerContract() {
 }
 
 export async function relayUpload({ uploader, title, description, deadline, signature }) {
-  const streaming = getRelayerContract();
-  await streaming.sponsoredUploadVideo.staticCall(uploader, title, description, deadline, signature);
-  const tx = await streaming.sponsoredUploadVideo(uploader, title, description, deadline, signature);
-  const receipt = await tx.wait();
-  const event = receipt.logs.map((log) => {
-    try { return iface.parseLog(log); } catch { return null; }
-  }).find((entry) => entry?.name === "VideoUploaded");
-  if (!event) throw new AppError(500, "Sponsored upload was confirmed without a registration event");
-  return { transactionHash: receipt.hash, number: Number(event.args.id) };
+  try {
+    const streaming = getRelayerContract();
+    await streaming.sponsoredUploadVideo.staticCall(uploader, title, description, deadline, signature);
+    const tx = await streaming.sponsoredUploadVideo(uploader, title, description, deadline, signature);
+    const receipt = await tx.wait();
+    const event = receipt.logs.map((log) => {
+      try { return iface.parseLog(log); } catch { return null; }
+    }).find((entry) => entry?.name === "VideoUploaded");
+    if (!event) throw new AppError(500, "Sponsored upload was confirmed without a registration event");
+    return { transactionHash: receipt.hash, number: Number(event.args.id) };
+  } catch (error) {
+    throw contractErrorToAppError(error);
+  }
 }
 
 export async function findUploadRegistration({ uploader, title, description }) {
@@ -64,11 +77,45 @@ export async function findUploadRegistration({ uploader, title, description }) {
 }
 
 export async function relayPurchase({ buyer, videoNumber, deadline, signature }) {
-  const streaming = getRelayerContract();
-  await streaming.sponsoredBuyVideo.staticCall(buyer, videoNumber, deadline, signature);
-  const tx = await streaming.sponsoredBuyVideo(buyer, videoNumber, deadline, signature);
-  const receipt = await tx.wait();
-  return { transactionHash: receipt.hash };
+  try {
+    const streaming = getRelayerContract();
+    await streaming.sponsoredBuyVideo.staticCall(buyer, videoNumber, deadline, signature);
+    const tx = await streaming.sponsoredBuyVideo(buyer, videoNumber, deadline, signature);
+    const receipt = await tx.wait();
+    return { transactionHash: receipt.hash };
+  } catch (error) {
+    throw contractErrorToAppError(error);
+  }
+}
+
+function contractErrorToAppError(error) {
+  if (error instanceof AppError) return error;
+
+  let decoded;
+  try { decoded = error?.data ? iface.parseError(error.data) : error?.revert; } catch { decoded = error?.revert; }
+
+  switch (decoded?.name) {
+    case "InsufficientCredits":
+      return new AppError(
+        402,
+        `Insufficient credits. This wallet has ${decoded.args[0]} credits and needs ${decoded.args[1]}.`
+      );
+    case "AlreadyHasAccess":
+      return new AppError(409, "This wallet already has access to the video");
+    case "VideoDoesNotExist":
+      return new AppError(404, "This video does not exist on-chain");
+    case "AuthorizationExpired":
+      return new AppError(401, "The wallet authorization expired. Please try again");
+    case "InvalidAuthorization":
+      return new AppError(401, "The wallet signature is invalid");
+    case "InvalidMetadata":
+      return new AppError(400, "The video metadata is invalid");
+    default:
+      if (error?.code === "CALL_EXCEPTION") {
+        return new AppError(400, "The blockchain rejected this request");
+      }
+      return error;
+  }
 }
 
 export async function verifyVideoRegistration({ transactionHash, number, title, description, uploader }) {
