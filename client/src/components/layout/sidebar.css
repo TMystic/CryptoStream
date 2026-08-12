@@ -31,9 +31,9 @@
   height: 34px;
   border-radius: 10px;
   background: var(--gradient);
-  color: #fff;
+  color: #07110e;
   font-size: 0.8rem;
-  box-shadow: 0 4px 14px rgba(108, 94, 207, 0.4);
+  box-shadow: 0 4px 20px rgba(85, 230, 182, 0.2);
 }
 
 .sidebar__logo-accent {
@@ -114,6 +114,15 @@
   font-size: 0.82rem;
   font-weight: 700;
   margin-bottom: 6px;
+}
+
+.sidebar__footer-kicker {
+  margin-bottom: 7px;
+  color: var(--primary);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
 }
 
 .sidebar__footer-text {

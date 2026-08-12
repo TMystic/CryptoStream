@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { videoApi } from "../api/client.js";
+import { uploadFile, videoApi } from "../api/client.js";
 import { useWallet } from "../context/WalletContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -40,9 +40,18 @@ export default function Upload() {
       return;
     }
 
+    let registration;
     setPhase("registering");
     try {
-      await contract.uploadVideo(title, description);
+      const tx = await contract.uploadVideo(title.trim(), description.trim());
+      const receipt = await tx.wait();
+      const event = receipt.logs
+        .map((log) => {
+          try { return contract.interface.parseLog(log); } catch { return null; }
+        })
+        .find((entry) => entry?.name === "VideoUploaded");
+      if (!event) throw new Error("Registration event was not found");
+      registration = { number: Number(event.args.id), transactionHash: receipt.hash };
     } catch (err) {
       console.error(err);
       toastError("On-chain registration failed. Please try again.");
@@ -53,18 +62,18 @@ export default function Upload() {
     setPhase("uploading");
     setProgress(15);
     try {
-      const formData = new FormData();
-      formData.append("videoFile", file);
-      formData.append("title", title);
-      formData.append("description", description);
-
-      // Simulated smooth progress while the file uploads
-      const interval = setInterval(() => {
-        setProgress((p) => Math.min(p + 8, 90));
-      }, 350);
-
-      await videoApi.upload(formData);
-      clearInterval(interval);
+      const request = await videoApi.requestUpload({
+        title: title.trim(),
+        description: description.trim(),
+        number: registration.number,
+        uploader: account,
+        transactionHash: registration.transactionHash,
+        originalName: file.name,
+        contentType: file.type,
+        fileSize: file.size,
+      });
+      await uploadFile(request.uploadUrl, file, setProgress);
+      await videoApi.finalizeUpload(registration.transactionHash);
       setProgress(100);
 
       toastSuccess("Video uploaded successfully!");
@@ -145,7 +154,7 @@ export default function Upload() {
               <p className="upload-form__drop-title">
                 {dragging ? "Drop it!" : "Drag & drop your video here"}
               </p>
-              <p className="upload-form__drop-meta">or click to browse — MP4, up to 300 MB</p>
+              <p className="upload-form__drop-meta">or click to browse — video files up to 1 GB</p>
             </>
           )}
         </div>

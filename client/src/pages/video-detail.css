@@ -74,6 +74,8 @@
   height: 30px;
 }
 
+.video-detail__lock-icon--open { color: var(--primary); font-size: 1.5rem; font-weight: 900; }
+
 .video-detail__locked h2 {
   font-size: 1.35rem;
   font-weight: 700;

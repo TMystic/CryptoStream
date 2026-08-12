@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWallet } from "../context/WalletContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -12,14 +12,6 @@ export default function VideoCard({ video }) {
   const { info: toastInfo, error: toastError } = useToast();
   const [locked, setLocked] = useState(null);
   const [checking, setChecking] = useState(false);
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    // Start preloading metadata on mount to reveal the first frame as thumbnail
-    if (videoRef.current) {
-      videoRef.current.load();
-    }
-  }, []);
 
   const handleClick = async () => {
     if (!account) {
@@ -46,14 +38,7 @@ export default function VideoCard({ video }) {
     <>
       <article className="video-card">
         <div className="video-card__media">
-          <video
-            ref={videoRef}
-            className="video-card__video"
-            muted
-            playsInline
-            preload="metadata"
-            src={video.videoPath}
-          />
+          <div className="video-card__art" aria-hidden="true"><span>CS</span></div>
           <div className="video-card__overlay">
             <button
               className="video-card__play"

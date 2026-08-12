@@ -3,4 +3,7 @@ export const CONTRACT_ADDRESS =
 
 export const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
+export const CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || 11155111);
+export const CHAIN_NAME = import.meta.env.VITE_CHAIN_NAME || "Sepolia";
+
 export const VIDEO_COST_CREDITS = 100;

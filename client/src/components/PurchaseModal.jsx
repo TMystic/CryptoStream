@@ -29,7 +29,7 @@ export default function PurchaseModal({ video, onClose }) {
     <Modal open={!!video} onClose={onClose} title="Unlock this video">
       <div className="purchase">
         <div className="purchase__video">
-          <video src={video.videoPath} muted playsInline preload="metadata" />
+          <div className="purchase__preview-mark" aria-hidden="true">▶</div>
         </div>
         <h3 className="purchase__title">{video.title}</h3>
         <p className="purchase__text">

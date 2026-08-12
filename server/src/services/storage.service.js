@@ -1,30 +1,36 @@
 import { randomUUID } from "crypto";
 import { bucket } from "../config/firebase.js";
 
-/**
- * Uploads a video buffer to Firebase Storage and returns a public download URL.
- */
-export async function uploadVideoFile({ buffer, contentType, originalName }) {
+export async function createUploadUrl({ contentType, originalName }) {
   const objectName = `videos/${Date.now()}-${randomUUID()}-${sanitize(originalName)}`;
-  const file = bucket.file(objectName);
-  const token = randomUUID();
-
-  await file.save(buffer, {
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+  const [url] = await bucket.file(objectName).getSignedUrl({
+    version: "v4",
+    action: "write",
+    expires: expiresAt,
     contentType,
-    public: true,
-    metadata: {
-      metadata: { firebaseStorageDownloadTokens: token },
-    },
   });
+  return { objectName, url, expiresAt };
+}
 
-  return publicDownloadUrl(bucket.name, objectName, token);
+export async function inspectVideoFile(objectName) {
+  const [metadata] = await bucket.file(objectName).getMetadata();
+  return { size: Number(metadata.size), contentType: metadata.contentType };
+}
+
+export async function createPlaybackUrl(objectName, expiresInMs = 10 * 60 * 1000) {
+  const [url] = await bucket.file(objectName).getSignedUrl({
+    action: "read",
+    expires: Date.now() + expiresInMs,
+  });
+  return url;
+}
+
+export async function deleteVideoFile(objectName) {
+  if (!objectName) return;
+  await bucket.file(objectName).delete({ ignoreNotFound: true });
 }
 
 function sanitize(name) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 100);
-}
-
-function publicDownloadUrl(bucketName, objectName, token) {
-  const encoded = encodeURIComponent(objectName);
-  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encoded}?alt=media&token=${token}`;
 }

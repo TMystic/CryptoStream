@@ -15,8 +15,11 @@ const videoSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2000,
     },
-    videoPath: { type: String, required: true },
+    storagePath: { type: String, required: true, select: false },
+    videoPath: { type: String, select: false },
     contentType: { type: String, default: "video/mp4" },
+    uploader: { type: String, required: true, lowercase: true, index: true },
+    transactionHash: { type: String, required: true, unique: true },
   },
   {
     timestamps: { createdAt: "uploadedAt", updatedAt: "updatedAt" },
@@ -25,6 +28,8 @@ const videoSchema = new mongoose.Schema(
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
+        delete ret.storagePath;
+        delete ret.videoPath;
         return ret;
       },
     },

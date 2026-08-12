@@ -10,12 +10,8 @@ export function errorHandler(err, _req, res, _next) {
     });
   }
 
-  if (err.name === "MulterError") {
-    const message =
-      err.code === "LIMIT_FILE_SIZE"
-        ? "File too large. Maximum size is 300 MB."
-        : `Upload error: ${err.code}`;
-    return res.status(400).json({ error: message });
+  if (err.code === 11000) {
+    return res.status(409).json({ error: "A video with this blockchain registration already exists" });
   }
 
   console.error("[error]", err);

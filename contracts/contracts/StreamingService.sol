@@ -23,6 +23,8 @@ contract StreamingService is Ownable {
     error TransferFailed();
     error VideoDoesNotExist(uint256 id);
     error AlreadyHasAccess(uint256 id);
+    error AccessDenied(uint256 id, address viewer);
+    error InvalidMetadata();
     error InsufficientCredits(uint256 balance, uint256 required);
 
     /* ------------------------------------------------------------------ */
@@ -126,6 +128,12 @@ contract StreamingService is Ownable {
      * @dev Registers a new video and grants the uploader permanent access.
      */
     function uploadVideo(string memory _title, string memory _description) public {
+        if (
+            bytes(_title).length == 0 || bytes(_title).length > 120 ||
+            bytes(_description).length == 0 || bytes(_description).length > 2000
+        ) {
+            revert InvalidMetadata();
+        }
         videoCount++;
         uint256 id = videoCount;
 
@@ -179,7 +187,7 @@ contract StreamingService is Ownable {
             revert VideoDoesNotExist(_id);
         }
         if (!videoAccess[_id].hasAccess[msg.sender]) {
-            revert AlreadyHasAccess(_id);
+            revert AccessDenied(_id, msg.sender);
         }
         return videos[_id];
     }
@@ -192,6 +200,14 @@ contract StreamingService is Ownable {
             revert VideoDoesNotExist(videoNumber);
         }
         return videoAccess[videoNumber].accessList;
+    }
+
+    /**
+     * @dev Checks access without exposing the full viewer list.
+     */
+    function hasVideoAccess(uint256 videoNumber, address viewer) public view returns (bool) {
+        if (videoNumber == 0 || videoNumber > videoCount) return false;
+        return videoAccess[videoNumber].hasAccess[viewer];
     }
 
     /**

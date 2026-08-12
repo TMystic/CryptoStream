@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useVideos } from "../hooks/useVideos.js";
-import { videoApi } from "../api/client.js";
 import VideoCard from "../components/VideoCard.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import "./home.css";
@@ -12,8 +11,7 @@ export default function Home() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialQuery = searchParams.get("q") || "";
-  const [query, setQuery] = useState(initialQuery);
-  const { videos, loading, error, pagination, loadMore } = useVideos({ initialQuery });
+  const { videos, loading, error, pagination, query, setQuery, loadMore } = useVideos({ initialQuery });
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -22,9 +20,7 @@ export default function Home() {
   const handleSearch = (e) => {
     const value = e.target.value;
     setQuery(value);
-    if (value.trim() === "") {
-      navigate("/");
-    }
+    if (value.trim() === "") navigate("/", { replace: true });
   };
 
   // Debounced search driven from the home page's own input
@@ -32,22 +28,34 @@ export default function Home() {
     const timer = setTimeout(() => {
       if (query !== initialQuery) {
         const params = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "/";
-        window.history.replaceState(null, "", params);
+        navigate(params, { replace: true });
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [query, initialQuery]);
+  }, [query, initialQuery, navigate]);
 
   return (
     <div className="page">
+      {!query && (
+        <section className="home-hero">
+          <div className="home-hero__copy">
+            <span className="home-hero__eyebrow"><i /> On-chain access. Off-chain speed.</span>
+            <h1>Independent video.<br /><em>Verifiable access.</em></h1>
+            <p>Discover creator-owned video, unlock it once, and keep the access right in your wallet.</p>
+          </div>
+          <div className="home-hero__proof" aria-label="Platform features">
+            <div><strong>Permanent</strong><span>wallet access</span></div>
+            <div><strong>Private</strong><span>signed playback</span></div>
+            <div><strong>Direct</strong><span>creator publishing</span></div>
+          </div>
+        </section>
+      )}
+
       <div className="home-head">
         <div>
-          <h1 className="page-heading">{query ? `Results for “${query}”` : "Discover Videos"}</h1>
-          <p className="page-subheading">
-            {query
-              ? "Videos matching your search."
-              : "Watch what you buy, own what you watch — access controlled by the blockchain."}
-          </p>
+          <span className="section-kicker">Library</span>
+          <h2 className="page-heading">{query ? `Results for “${query}”` : "Latest releases"}</h2>
+          <p className="page-subheading">{query ? "Videos matching your search." : "Fresh uploads from independent creators."}</p>
         </div>
         <div className="home-search">
           <svg className="home-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -56,7 +64,7 @@ export default function Home() {
           </svg>
           <input
             type="search"
-            placeholder="Search videos…"
+            placeholder="Search the library"
             value={query}
             onChange={handleSearch}
             aria-label="Search videos"

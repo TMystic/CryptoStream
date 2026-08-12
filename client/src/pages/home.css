@@ -55,6 +55,7 @@
 }
 
 @media (max-width: 640px) {
+  .home-hero { grid-template-columns: 1fr; gap: 30px; margin-bottom: 36px; padding: 30px 24px; border-radius: 20px; }
   .home-head {
     flex-direction: column;
     align-items: stretch;
@@ -64,3 +65,41 @@
     width: 100%;
   }
 }
+.home-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+  gap: 48px;
+  align-items: end;
+  margin-bottom: 56px;
+  padding: clamp(32px, 6vw, 72px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 86% 18%, rgba(102, 240, 194, 0.18), transparent 18rem),
+    linear-gradient(140deg, #111a18, #090d0c 72%);
+}
+
+.home-hero::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -110px;
+  width: 330px;
+  height: 330px;
+  border: 1px solid rgba(102, 240, 194, 0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 44px rgba(102, 240, 194, 0.025), 0 0 0 88px rgba(102, 240, 194, 0.018);
+}
+
+.home-hero__copy { position: relative; z-index: 1; }
+.home-hero__eyebrow { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 24px; color: var(--text-muted); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.home-hero__eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 16px var(--primary); }
+.home-hero h1 { max-width: 720px; font-size: clamp(2.55rem, 5.7vw, 5.5rem); line-height: .98; letter-spacing: -.065em; font-weight: 730; }
+.home-hero h1 em { color: var(--primary); font-style: normal; }
+.home-hero__copy > p { max-width: 590px; margin-top: 24px; color: var(--text-muted); font-size: 1rem; line-height: 1.7; }
+.home-hero__proof { position: relative; z-index: 1; display: grid; gap: 1px; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: var(--border); }
+.home-hero__proof div { display: flex; justify-content: space-between; gap: 16px; padding: 16px 18px; background: rgba(9, 14, 13, .84); }
+.home-hero__proof strong { font-size: .82rem; }
+.home-hero__proof span { color: var(--text-faint); font-size: .76rem; }

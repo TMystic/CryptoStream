@@ -55,8 +55,8 @@ flowchart TD
     end
 
     subgraph Server["Express API"]
-        I[POST /api/videos - multer memory storage]
-        J[Firebase Storage - video files]
+        I[Verified upload request + finalize]
+        J[Private Firebase Storage - direct signed upload]
         K[MongoDB - video metadata]
         L[GET /api/videos + search]
     end
@@ -67,18 +67,18 @@ flowchart TD
     A --> L --> D
 ```
 
-**Upload flow:** the frontend registers the video on-chain (`uploadVideo`), then streams the file to the API, which stores it in Firebase Storage and saves its metadata (title, description, download URL) in MongoDB.
+**Upload flow:** the frontend confirms `uploadVideo` on-chain, then sends the transaction hash with the file. The API verifies the receipt and its metadata before placing the file in private Firebase Storage and saving the verified chain ID in MongoDB.
 
-**Access flow:** clicking *Play* queries the contract's access list. If the wallet has access, the video streams. Otherwise the user is prompted to spend 100 credits via `buyVideo`, which permanently grants access on-chain.
+**Access flow:** clicking *Play* checks `hasVideoAccess`. An entitled viewer signs a free, five-minute wallet message; the API verifies the signature and current on-chain access before issuing a short-lived private playback URL. Otherwise the viewer can spend 100 credits via `buyVideo` to gain permanent access.
 
 ## Features
 
-- **On-chain access control** — per-video access lists in the `videoAccess` mapping; `getVideo` is only callable by authorized addresses
+- **On-chain access control** — per-video rights in `videoAccess`; `hasVideoAccess` checks entitlement and `getVideo` is restricted to authorized callers
 - **Tokenized credit economy** — send ≥ 0.001 ETH to mint 1,000 credits per unit (1M credits per ETH); balances tracked in the `balances` mapping
 - **Modern React frontend** — Vite + React 18, React Router, ethers v6, polished dark design system
-- **Hardened smart contract** — Solidity 0.8.24, OpenZeppelin `Ownable`, custom errors, checks-effects-interactions, CEI-safe fund transfer, 14 unit tests
-- **Structured Express API** — routes / controllers / models / middleware split, zod request validation, centralized error handling, pagination
-- **Serverless-ready backend** — multer memory storage + Firebase Admin SDK (no temp files, works on Vercel)
+- **Hardened smart contract** — Solidity 0.8.24, OpenZeppelin `Ownable`, custom errors, metadata bounds, direct access checks, and 15 unit tests
+- **Structured Express API** — verified chain receipts, signed playback authorization, zod validation, rate limiting, security headers, centralized errors, and pagination
+- **Private video delivery** — Firebase objects are private; ten-minute playback URLs are issued only after wallet signature and live contract verification
 - **Live search** — debounced, case-insensitive title search with proper regex escaping
 - **MetaMask integration** — account/chain change listeners, transaction feedback, error extraction
 - **Polished UX** — skeleton loaders, toast notifications, purchase modals, drag & drop uploads, empty states, responsive mobile layout
@@ -98,14 +98,14 @@ flowchart TD
 │   └── src/
 │       ├── config/             # env validation, MongoDB, Firebase Admin
 │       ├── controllers/        # Request handlers with zod validation
-│       ├── middleware/         # error, 404, validation
+│       ├── middleware/         # errors, 404s, validation, security
 │       ├── models/             # Mongoose schemas
 │       ├── routes/             # /api/videos, /api/health
-│       ├── services/           # Firebase Storage uploads
+│       ├── services/           # Private storage and blockchain verification
 │       └── utils/              # asyncHandler, AppError, escapeRegex
 ├── contracts/                  # Hardhat project
 │   ├── contracts/              # StreamingService.sol
-│   ├── test/                   # 14 unit tests
+│   ├── test/                   # 15 contract unit tests
 │   └── scripts/                # deploy.js
 ├── vercel.json                 # Vercel serverless + static deployment
 └── .env.example                # All required environment variables
@@ -115,18 +115,18 @@ flowchart TD
 
 | Layer      | Technology                                                                  |
 | ---------- | --------------------------------------------------------------------------- |
-| Frontend   | React 18, Vite 6, React Router 6, ethers v6                                  |
+| Frontend   | React 18, Vite 6, React Router 7, ethers v6                                  |
 | Backend    | Node.js, Express 4, Multer (memory storage), zod                             |
 | Storage    | Firebase Admin SDK (video files), MongoDB + Mongoose (metadata)              |
 | Blockchain | Solidity 0.8.24, OpenZeppelin v5, Hardhat, ethers v6, MetaMask               |
-| Testing    | Hardhat + Chai (contracts)                                                   |
+| Testing    | Node test runner (server), Hardhat + Chai (contracts)                        |
 | Deploy     | Vercel (`@vercel/node` + static build), npm workspaces                       |
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) >= 18.17
+- [Node.js](https://nodejs.org/) >= 20.19
 - A [MongoDB](https://www.mongodb.com/atlas) database (local or Atlas)
 - A [Firebase](https://console.firebase.google.com/) project with **Storage** enabled
 - [MetaMask](https://metamask.io/) with a funded test-network account (e.g. Sepolia)
@@ -142,7 +142,7 @@ cp .env.example .env
 ```bash
 # --- Server ---
 PORT=3000
-CORS_ORIGIN=*
+CORS_ORIGIN=http://localhost:5173
 
 MONGO_SERVER=mongodb+srv://<user>:<password>@cluster.mongodb.net/cryptostream
 
@@ -152,8 +152,15 @@ FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.c
 FIREBASE_PRIVATE_KEY_BASE64=<base64-encoded-private-key>   # recommended
 FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 
+# Read-only RPC used by the API for receipt/access verification
+RPC_URL=https://sepolia.infura.io/v3/your-key
+CHAIN_ID=11155111
+CONTRACT_ADDRESS=<deployed-address>
+
 # --- Client ---
 VITE_CONTRACT_ADDRESS=0xa25d735b938FE3d565F38f49e33e9e0f483bD30E
+VITE_CHAIN_ID=11155111
+VITE_CHAIN_NAME=Sepolia
 VITE_API_URL=            # leave empty to use the Vite dev proxy (/api)
 ```
 
@@ -172,6 +179,18 @@ cp .env.example .env
 
 # 3. Start everything — API on :3000, React app on :5173
 npm run dev
+```
+
+If upgrading an existing CryptoStream database, revoke legacy public download tokens and backfill private object paths once:
+
+```bash
+npm run migrate:private-storage --workspace=server
+```
+
+Before browser uploads, replace the example production domain in `firebase-storage-cors.json` and apply it to the Firebase Storage bucket with the Google Cloud CLI:
+
+```bash
+gcloud storage buckets update gs://YOUR_BUCKET --cors-file=firebase-storage-cors.json
 ```
 
 Open `http://localhost:5173` (Vite proxies `/api` to the Express server automatically).
@@ -238,17 +257,30 @@ Fetch one video by its numeric id.
 
 **Response:** `200 OK` — `{ "video": { ... } }` · `404` — `{ "error": "Video not found" }`
 
-### `POST /api/videos`
+### `POST /api/videos/upload-request`
 
-Uploads a video file (`multipart/form-data`), stores it in Firebase Storage, and saves metadata to MongoDB.
+Verifies a confirmed `VideoUploaded` transaction and returns a 15-minute signed Firebase upload URL. The browser uploads directly to storage, avoiding serverless request-size limits.
 
 | Field         | Type   | Required | Description      |
 | ------------- | ------ | -------- | ---------------- |
-| `videoFile`   | file   | yes      | Video file (≤ 300 MB) |
 | `title`       | string | yes      | Video title (≤ 120 chars) |
 | `description` | string | yes      | Description (≤ 2000 chars) |
+| `number` | integer | yes | Video ID emitted by the contract |
+| `uploader` | address | yes | Wallet that submitted the transaction |
+| `transactionHash` | hash | yes | Confirmed `uploadVideo` transaction |
+| `originalName` | string | yes | Original video filename |
+| `contentType` | string | yes | A `video/*` MIME type |
+| `fileSize` | integer | yes | File size in bytes (≤ 1 GB) |
+
+### `POST /api/videos/upload-finalize`
+
+Checks the uploaded object's size and type, then atomically publishes its verified metadata. The body contains the original `transactionHash`.
 
 **Response:** `201 Created` — `{ "message": "Video uploaded successfully", "video": { ... } }`
+
+### `POST /api/videos/:id/playback`
+
+Accepts a short-lived wallet signature and returns a ten-minute signed playback URL after current on-chain access is verified. Responses are marked `no-store`.
 
 Validation failures return `400` with a `details` array of field-level issues.
 
@@ -263,6 +295,7 @@ Validation failures return `400` with a `details` array of field-level issues.
 | `buyVideo(videoNumber)`           | public  | 100 credits  | Grants the caller permanent access to a video              |
 | `getVideo(_id)`                   | view    | —            | Returns video metadata — reverts if the caller has no access |
 | `getAccessList(videoNumber)`      | view    | —            | Lists all addresses with access to a video                 |
+| `hasVideoAccess(videoNumber, viewer)` | view | — | Checks one wallet's access without downloading the viewer list |
 | `getVideosByAddress(_addr)`       | view    | —            | Lists video ids an address owns or has purchased           |
 
 **Constants:** `CREDIT_PRICE = 0.001 ether` · `CREDITS_PER_UNIT = 1000` · `VIDEO_COST = 100`
@@ -278,7 +311,7 @@ Provided by OpenZeppelin v5 (`Ownable(msg.sender)`), including `transferOwnershi
 ## Testing
 
 ```bash
-# Smart contract unit tests (14 tests)
+# Server utility tests and smart contract tests (17 tests total)
 npm run test
 ```
 
@@ -293,7 +326,7 @@ npm i -g vercel
 vercel
 ```
 
-Configure the same environment variables from `.env` in Vercel's dashboard (**Settings → Environment Variables**), including `MONGO_SERVER`, the Firebase Admin credentials, and `VITE_CONTRACT_ADDRESS`.
+Configure the same environment variables from `.env` in Vercel's dashboard (**Settings → Environment Variables**), including `MONGO_SERVER`, Firebase Admin credentials, `RPC_URL`, both contract address variables, and the chain variables.
 
 ## Roadmap
 

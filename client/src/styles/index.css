@@ -3,23 +3,23 @@
 /* ------------------------------------------------------------------ */
 
 :root {
-  --bg: #0d0e16;
-  --bg-elevated: #11131f;
-  --surface: #161827;
-  --surface-2: #1c1f33;
-  --surface-hover: #232741;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --bg: #070a0a;
+  --bg-elevated: #0c1110;
+  --surface: #101716;
+  --surface-2: #16201e;
+  --surface-hover: #1c2926;
+  --border: rgba(228, 255, 248, 0.08);
+  --border-strong: rgba(228, 255, 248, 0.18);
 
-  --text: #eef0f8;
-  --text-muted: #8f94a8;
-  --text-faint: #5c6178;
+  --text: #f2f7f5;
+  --text-muted: #91a19d;
+  --text-faint: #5d6e69;
 
-  --primary: #6c5ecf;
-  --primary-soft: rgba(108, 94, 207, 0.16);
-  --accent: #ff4081;
-  --gradient: linear-gradient(135deg, #6c5ecf 0%, #ff4081 100%);
-  --gradient-soft: linear-gradient(135deg, rgba(108, 94, 207, 0.2), rgba(255, 64, 129, 0.2));
+  --primary: #66f0c2;
+  --primary-soft: rgba(102, 240, 194, 0.12);
+  --accent: #9df7d9;
+  --gradient: linear-gradient(135deg, #55e6b6 0%, #9cf5d8 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(85, 230, 182, 0.16), rgba(156, 245, 216, 0.06));
 
   --success: #2bd576;
   --success-soft: rgba(43, 213, 118, 0.14);
@@ -35,7 +35,7 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
 
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --sidebar-width: 240px;
   --header-height: 72px;
@@ -65,6 +65,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  background-image: radial-gradient(circle at 75% -10%, rgba(102, 240, 194, 0.08), transparent 28rem);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -148,10 +149,20 @@ textarea {
 }
 
 .page-heading {
-  font-size: 1.75rem;
+  font-size: 1.65rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin-bottom: 4px;
+}
+
+.section-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .page-subheading {
@@ -189,12 +200,12 @@ textarea {
 
 .btn--primary {
   background: var(--gradient);
-  color: #fff;
-  box-shadow: 0 4px 18px rgba(108, 94, 207, 0.35);
+  color: #07110e;
+  box-shadow: 0 4px 18px rgba(85, 230, 182, 0.18);
 }
 
 .btn--primary:not(:disabled):hover {
-  box-shadow: 0 6px 26px rgba(255, 64, 129, 0.45);
+  box-shadow: 0 8px 30px rgba(85, 230, 182, 0.25);
   transform: translateY(-1px);
 }
 
@@ -247,7 +258,7 @@ textarea {
 .badge--gradient {
   background: var(--gradient-soft);
   border-color: transparent;
-  color: var(--accent);
+  color: var(--primary);
 }
 
 /* Cards */

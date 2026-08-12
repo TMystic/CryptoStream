@@ -13,13 +13,15 @@ import "./video-detail.css";
 export default function VideoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { account, hasAccess, credits } = useWallet();
+  const { account, hasAccess, authorizePlayback, credits, connect } = useWallet();
   const { info: toastInfo, error: toastError } = useToast();
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unlocked, setUnlocked] = useState(false);
   const [showPurchase, setShowPurchase] = useState(false);
+  const [playbackUrl, setPlaybackUrl] = useState("");
+  const [authorizing, setAuthorizing] = useState(false);
 
   const checkAccess = useCallback(async () => {
     if (!video || !account) {
@@ -35,6 +37,20 @@ export default function VideoDetail() {
       setUnlocked(false);
     }
   }, [video, account, hasAccess, toastError]);
+
+  const startPlayback = useCallback(async () => {
+    if (!video || !account) return;
+    setAuthorizing(true);
+    try {
+      const authorization = await authorizePlayback(video.number);
+      const data = await videoApi.playback(video.number, authorization);
+      setPlaybackUrl(data.url);
+    } catch (err) {
+      toastError(err?.code === 4001 ? "Playback authorization was cancelled" : err.message);
+    } finally {
+      setAuthorizing(false);
+    }
+  }, [video, account, authorizePlayback, toastError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,8 +103,17 @@ export default function VideoDetail() {
 
       <div className="video-detail">
         <div className="video-detail__player-wrap">
-          {unlocked ? (
-            <video className="video-detail__player" controls autoPlay playsInline src={video.videoPath} />
+          {unlocked && playbackUrl ? (
+            <video className="video-detail__player" controls autoPlay playsInline src={playbackUrl} />
+          ) : unlocked ? (
+            <div className="video-detail__locked">
+              <div className="video-detail__lock-icon video-detail__lock-icon--open">✓</div>
+              <h2>You own this video</h2>
+              <p>Authorize this playback session with your wallet. Signing is free and does not create a transaction.</p>
+              <button className="btn btn--primary" onClick={startPlayback} disabled={authorizing}>
+                {authorizing ? "Authorizing…" : "Start secure playback"}
+              </button>
+            </div>
           ) : (
             <div className="video-detail__locked">
               <div className="video-detail__lock-icon">
@@ -117,7 +142,7 @@ export default function VideoDetail() {
                   Unlock for {VIDEO_COST_CREDITS.toLocaleString()} credits
                 </button>
               ) : (
-                <button className="btn btn--primary" onClick={() => toastInfo("Connect your wallet first")}>
+                <button className="btn btn--primary" onClick={connect}>
                   Connect wallet to unlock
                 </button>
               )}

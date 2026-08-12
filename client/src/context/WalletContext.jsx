@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BrowserProvider, Contract, ethers, formatEther } from "ethers";
-import { CONTRACT_ADDRESS } from "../config.js";
+import { CHAIN_ID, CHAIN_NAME, CONTRACT_ADDRESS } from "../config.js";
 import contractAbi from "../contracts/StreamingService.json";
 import { useToast } from "./ToastContext.jsx";
 
@@ -50,8 +50,19 @@ export function WalletProvider({ children }) {
     try {
       const provider = new BrowserProvider(window.ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
+      const network = await provider.getNetwork();
+      if (Number(network.chainId) !== CHAIN_ID) {
+        throw new Error(`Wrong network. Switch MetaMask to ${CHAIN_NAME} (chain ${CHAIN_ID}).`);
+      }
       const signer = await provider.getSigner();
       const address = accounts[0];
+
+      if (!ethers.isAddress(CONTRACT_ADDRESS)) {
+        throw new Error("The streaming contract address is not configured.");
+      }
+
+      const code = await provider.getCode(CONTRACT_ADDRESS);
+      if (code === "0x") throw new Error(`No streaming contract was found on ${CHAIN_NAME}.`);
 
       const instance = new Contract(CONTRACT_ADDRESS, contractAbi, signer);
       setContract(instance);
@@ -60,7 +71,9 @@ export function WalletProvider({ children }) {
       toastSuccess(`Wallet connected: ${address.slice(0, 6)}…${address.slice(-4)}`);
     } catch (err) {
       console.error("Wallet connection failed:", err);
-      setError("Failed to connect wallet. Check your MetaMask connection.");
+      const reason = extractError(err);
+      setError(reason);
+      toastError(reason);
     } finally {
       setConnecting(false);
     }
@@ -119,10 +132,26 @@ export function WalletProvider({ children }) {
   const hasAccess = useCallback(
     async (videoNumber) => {
       if (!contract || !account) return false;
-      const accessList = await contract.getAccessList(videoNumber);
-      return accessList.some((addr) => addr.toLowerCase() === account.toLowerCase());
+      return contract.hasVideoAccess(videoNumber, account);
     },
     [contract, account]
+  );
+
+  const authorizePlayback = useCallback(
+    async (videoNumber) => {
+      if (!account || !window.ethereum) throw new Error("Wallet not connected");
+      const expiresAt = Date.now() + 5 * 60 * 1000;
+      const message = [
+        "CryptoStream playback authorization",
+        `Video: ${videoNumber}`,
+        `Wallet: ${account.toLowerCase()}`,
+        `Expires: ${expiresAt}`,
+      ].join("\n");
+      const signer = await new BrowserProvider(window.ethereum).getSigner();
+      const signature = await signer.signMessage(message);
+      return { address: account, expiresAt, signature };
+    },
+    [account]
   );
 
   const getMyVideoIds = useCallback(async () => {
@@ -166,6 +195,7 @@ export function WalletProvider({ children }) {
       buyVideo,
       hasAccess,
       getMyVideoIds,
+      authorizePlayback,
       refreshBalances,
     }),
     [
@@ -183,6 +213,7 @@ export function WalletProvider({ children }) {
       buyVideo,
       hasAccess,
       getMyVideoIds,
+      authorizePlayback,
       refreshBalances,
     ]
   );

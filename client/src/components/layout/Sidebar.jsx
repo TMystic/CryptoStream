@@ -14,7 +14,7 @@ export default function Sidebar({ open, onClose }) {
       <div className={`sidebar-scrim ${open ? "sidebar-scrim--visible" : ""}`} onClick={onClose} />
       <aside className={`sidebar ${open ? "sidebar--open" : ""}`}>
         <NavLink to="/" className="sidebar__logo" onClick={onClose}>
-          <span className="sidebar__logo-mark">▶</span>
+          <span className="sidebar__logo-mark">C</span>
           Crypto<span className="sidebar__logo-accent">Stream</span>
         </NavLink>
 
@@ -38,9 +38,10 @@ export default function Sidebar({ open, onClose }) {
 
         <div className="sidebar__footer">
           <div className="sidebar__footer-card">
-            <p className="sidebar__footer-title">Decentralised by design</p>
+            <p className="sidebar__footer-kicker">Protocol note</p>
+            <p className="sidebar__footer-title">Your wallet is the key.</p>
             <p className="sidebar__footer-text">
-              Access rights live on-chain. No platform decides what you watch.
+              Purchases grant permanent on-chain access. Playback links remain private and short-lived.
             </p>
           </div>
         </div>

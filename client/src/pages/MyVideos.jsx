@@ -93,13 +93,7 @@ function MyVideoCard({ video, onOpen }) {
   return (
     <article className="video-card" onClick={onOpen} style={{ cursor: "pointer" }}>
       <div className="video-card__media">
-        <video
-          className="video-card__video"
-          muted
-          playsInline
-          preload="metadata"
-          src={video.videoPath}
-        />
+        <div className="video-card__art" aria-hidden="true"><span>CS</span></div>
         <span className="video-card__badge">#{video.number}</span>
       </div>
       <div className="video-card__body">

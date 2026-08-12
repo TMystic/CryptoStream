@@ -126,10 +126,9 @@ describe("StreamingService", function () {
       expect(video.title).to.equal("Exclusive");
       expect(video.description).to.equal("Secret content");
 
-      await expect(streaming.connect(other).getVideo(1)).to.be.revertedWithCustomError(
-        streaming,
-        "AlreadyHasAccess"
-      );
+      await expect(streaming.connect(other).getVideo(1))
+        .to.be.revertedWithCustomError(streaming, "AccessDenied")
+        .withArgs(1, other.address);
     });
 
     it("reverts for a non-existent video", async function () {
@@ -137,6 +136,15 @@ describe("StreamingService", function () {
         streaming,
         "VideoDoesNotExist"
       );
+    });
+  });
+
+  describe("hasVideoAccess", function () {
+    it("returns access without exposing the complete access list", async function () {
+      await streaming.connect(creator).uploadVideo("Exclusive", "Members only");
+      expect(await streaming.hasVideoAccess(1, creator.address)).to.equal(true);
+      expect(await streaming.hasVideoAccess(1, other.address)).to.equal(false);
+      expect(await streaming.hasVideoAccess(999, other.address)).to.equal(false);
     });
   });
 
