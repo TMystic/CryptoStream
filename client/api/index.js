@@ -1,6 +1,6 @@
 import app from "../../server/src/index.js";
 
-// Client-root production entrypoint bundles the shared API and runtime diagnostics.
+// Client-root production entrypoint bundles the shared API and database diagnostics.
 export default function handler(req, res) {
   const path = Array.isArray(req.query.path) ? req.query.path.join("/") : req.query.path || "";
   const params = new URLSearchParams();
