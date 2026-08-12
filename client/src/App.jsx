@@ -5,6 +5,7 @@ import VideoDetail from "./pages/VideoDetail.jsx";
 import MyVideos from "./pages/MyVideos.jsx";
 import Upload from "./pages/Upload.jsx";
 import Wallet from "./pages/Wallet.jsx";
+import Profile from "./pages/Profile.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="my-videos" element={<MyVideos />} />
         <Route path="upload" element={<Upload />} />
         <Route path="wallet" element={<Wallet />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

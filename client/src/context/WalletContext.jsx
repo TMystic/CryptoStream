@@ -165,7 +165,8 @@ export function WalletProvider({ children }) {
         const signer = await new BrowserProvider(window.ethereum).getSigner();
         const signature = await signer.signMessage(ethers.getBytes(digest));
         await transactionApi.purchase({ buyer: account, videoNumber, deadline, signature });
-        await refreshBalances(account, contract);
+        setCredits(currentCredits - VIDEO_COST_CREDITS);
+        window.setTimeout(() => refreshBalances(account, contract), 1500);
         toastSuccess("Video unlocked successfully!");
         return true;
       } catch (err) {
@@ -225,6 +226,19 @@ export function WalletProvider({ children }) {
     return ids.map(Number);
   }, [contract, account]);
 
+  const getAccountStats = useCallback(async () => {
+    if (!contract || !account) return null;
+    const [ids, currentBalance] = await Promise.all([
+      contract.getVideosByAddress(account),
+      contract.balances(account),
+    ]);
+    const records = await Promise.all(ids.map((id) => contract.videos(id)));
+    const uploaded = records.filter((video) => video[3].toLowerCase() === account.toLowerCase()).length;
+    const purchased = records.length - uploaded;
+    const spent = (uploaded + purchased) * VIDEO_COST_CREDITS;
+    return { uploaded, purchased, spent, bought: Number(currentBalance) + spent, earned: 0, current: Number(currentBalance) };
+  }, [contract, account]);
+
   useEffect(() => {
     if (!window.ethereum) return;
     const handleAccountsChanged = (accounts) => {
@@ -260,6 +274,7 @@ export function WalletProvider({ children }) {
       buyVideo,
       hasAccess,
       getMyVideoIds,
+      getAccountStats,
       authorizePlayback,
       sponsorUpload,
       refreshBalances,
@@ -279,6 +294,7 @@ export function WalletProvider({ children }) {
       buyVideo,
       hasAccess,
       getMyVideoIds,
+      getAccountStats,
       authorizePlayback,
       sponsorUpload,
       refreshBalances,

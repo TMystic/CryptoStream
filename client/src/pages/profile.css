@@ -1,0 +1,19 @@
+.profile-page { max-width: 1040px; margin: 0 auto; }
+.profile-hero { display: flex; align-items: center; gap: 20px; padding: 28px; margin-bottom: 24px; background: linear-gradient(135deg, rgba(102,240,194,.1), var(--surface) 48%); }
+.profile-hero__avatar { display: grid; place-items: center; flex: 0 0 72px; height: 72px; border-radius: 50%; background: var(--gradient); color: #07110e; font-size: 1.35rem; font-weight: 800; box-shadow: 0 0 32px rgba(102,240,194,.2); }
+.profile-hero__copy { min-width: 0; flex: 1; }
+.profile-hero h1 { margin-bottom: 6px; font-size: 1.6rem; }
+.profile-hero p { overflow: hidden; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: .78rem; text-overflow: ellipsis; }
+.profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.profile-stat { display: flex; flex-direction: column; min-height: 150px; padding: 22px; }
+.profile-stat > span { color: var(--text-muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.profile-stat strong { margin: auto 0 4px; font-size: 2rem; }
+.profile-stat small { color: var(--text-faint); }
+.profile-stat--accent strong { color: var(--primary); text-shadow: 0 0 20px rgba(102,240,194,.25); }
+.profile-activity { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; padding: 8px; }
+.profile-activity div { display: flex; justify-content: space-between; padding: 18px; border-right: 1px solid var(--border); }
+.profile-activity div:last-child { border: 0; }
+.profile-activity span { color: var(--text-muted); font-size: .84rem; }
+.profile-loading { display: flex; justify-content: center; gap: 10px; padding: 60px; color: var(--text-muted); }
+@media (max-width: 850px) { .profile-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .profile-hero { align-items: flex-start; flex-wrap: wrap; } .profile-hero .btn { width: 100%; } .profile-stats, .profile-activity { grid-template-columns: 1fr; } .profile-activity div { border-right: 0; border-bottom: 1px solid var(--border); } }
