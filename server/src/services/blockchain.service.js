@@ -32,6 +32,7 @@ function getRelayerContract() {
 
 export async function relayUpload({ uploader, title, description, deadline, signature }) {
   const streaming = getRelayerContract();
+  await streaming.sponsoredUploadVideo.staticCall(uploader, title, description, deadline, signature);
   const tx = await streaming.sponsoredUploadVideo(uploader, title, description, deadline, signature);
   const receipt = await tx.wait();
   const event = receipt.logs.map((log) => {
@@ -43,6 +44,7 @@ export async function relayUpload({ uploader, title, description, deadline, sign
 
 export async function relayPurchase({ buyer, videoNumber, deadline, signature }) {
   const streaming = getRelayerContract();
+  await streaming.sponsoredBuyVideo.staticCall(buyer, videoNumber, deadline, signature);
   const tx = await streaming.sponsoredBuyVideo(buyer, videoNumber, deadline, signature);
   const receipt = await tx.wait();
   return { transactionHash: receipt.hash };
