@@ -32,10 +32,10 @@ export const videoApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  finalizeUpload: (transactionHash) =>
+  finalizeUpload: (transactionHash, storagePath) =>
     request("/videos/upload-finalize", {
       method: "POST",
-      body: JSON.stringify({ transactionHash }),
+      body: JSON.stringify({ transactionHash, storagePath }),
     }),
 };
 
@@ -48,8 +48,13 @@ export function uploadFile(url, file, onProgress) {
       if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
     });
     xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Storage upload failed with status ${xhr.status}`));
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          resolve({});
+        }
+      } else reject(new Error(`Storage upload failed with status ${xhr.status}`));
     });
     xhr.addEventListener("error", () => reject(new Error("Storage upload was interrupted")));
     xhr.send(file);

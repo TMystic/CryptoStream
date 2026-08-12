@@ -37,6 +37,11 @@ export const requestVideoUpload = [
       if (pending.transactionHash !== transactionHash) {
         throw new AppError(409, "A different upload is already pending for this video ID");
       }
+      const stored = await inspectVideoFile(pending.storagePath).catch(() => null);
+      if (stored && stored.size === pending.expectedSize && stored.contentType === pending.contentType) {
+        const video = await createVideoFromPending(pending, stored.pathname);
+        return res.status(200).json({ alreadyUploaded: true, video });
+      }
       await deleteVideoFile(pending.storagePath).catch(() => {});
       await pending.deleteOne();
     }
@@ -58,6 +63,7 @@ const finalizeSchema = z.object({
       (value) => /^0x[a-fA-F0-9]{64}$/.test(value) || /^recovered:\d+$/.test(value),
       "Invalid transaction hash"
     ),
+    storagePath: z.string().trim().min(1).max(500).optional(),
   }),
 });
 
@@ -66,25 +72,30 @@ export const finalizeVideoUpload = [
   asyncHandler(async (req, res) => {
     const pending = await PendingUpload.findOne({ transactionHash: req.body.transactionHash });
     if (!pending) throw new AppError(404, "Pending upload not found or expired");
-    const stored = await inspectVideoFile(pending.storagePath);
+    const stored = await inspectVideoFile(pending.storagePath, req.body.storagePath);
     if (stored.size !== pending.expectedSize || stored.contentType !== pending.contentType) {
       await deleteVideoFile(pending.storagePath);
       await pending.deleteOne();
       throw new AppError(400, "Uploaded file does not match the authorized file");
     }
-    const video = await Video.create({
-      number: pending.number,
-      title: pending.title,
-      description: pending.description,
-      storagePath: pending.storagePath,
-      contentType: pending.contentType,
-      uploader: pending.uploader,
-      transactionHash: pending.transactionHash,
-    });
-    await pending.deleteOne();
+    const video = await createVideoFromPending(pending, stored.pathname);
     res.status(201).json({ message: "Video uploaded successfully", video });
   }),
 ];
+
+async function createVideoFromPending(pending, storagePath) {
+  const video = await Video.create({
+    number: pending.number,
+    title: pending.title,
+    description: pending.description,
+    storagePath,
+    contentType: pending.contentType,
+    uploader: pending.uploader,
+    transactionHash: pending.transactionHash,
+  });
+  await pending.deleteOne();
+  return video;
+}
 
 const listQuerySchema = z.object({
   query: z.object({

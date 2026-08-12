@@ -64,8 +64,10 @@ export default function Upload() {
         contentType: file.type,
         fileSize: file.size,
       });
-      await uploadFile(request.uploadUrl, file, setProgress);
-      await videoApi.finalizeUpload(registration.transactionHash);
+      if (!request.alreadyUploaded) {
+        const uploaded = await uploadFile(request.uploadUrl, file, setProgress);
+        await videoApi.finalizeUpload(registration.transactionHash, uploaded.pathname);
+      }
       setProgress(100);
 
       toastSuccess("Video uploaded successfully!");
