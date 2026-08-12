@@ -37,6 +37,7 @@ describe("StreamingService", function () {
 
       const balance = await streaming.balances(buyer.address);
       expect(balance).to.equal(2n * CREDITS_PER_UNIT);
+      expect(await streaming.creditsAcquired(buyer.address)).to.equal(2n * CREDITS_PER_UNIT);
     });
 
     it("emits CreditsPurchased", async function () {
@@ -112,6 +113,11 @@ describe("StreamingService", function () {
 
       const balance = await streaming.balances(buyer.address);
       expect(balance).to.equal(CREDITS_PER_UNIT - VIDEO_COST);
+      expect(await streaming.balances(creator.address)).to.equal(CREDITS_PER_UNIT - VIDEO_COST + 50n);
+      expect(await streaming.balances(owner.address)).to.equal(50n);
+      expect(await streaming.creditsSpent(buyer.address)).to.equal(VIDEO_COST);
+      expect(await streaming.creditsEarned(creator.address)).to.equal(50n);
+      expect(await streaming.creditsEarned(owner.address)).to.equal(50n);
 
       const access = await streaming.getAccessList(1);
       expect(access).to.include(buyer.address);
@@ -190,6 +196,8 @@ describe("StreamingService", function () {
 
       expect(await streaming.balances(buyer.address)).to.equal(CREDITS_PER_UNIT - VIDEO_COST);
       expect(await streaming.hasVideoAccess(1, buyer.address)).to.equal(true);
+      expect(await streaming.creditsEarned(creator.address)).to.equal(50n);
+      expect(await streaming.creditsEarned(owner.address)).to.equal(50n);
     });
 
     it("rejects an authorization replay", async function () {

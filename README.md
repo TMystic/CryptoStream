@@ -156,7 +156,7 @@ CHAIN_ID=11155111
 CONTRACT_ADDRESS=<deployed-address>
 
 # --- Client ---
-VITE_CONTRACT_ADDRESS=0xa25d735b938FE3d565F38f49e33e9e0f483bD30E
+VITE_CONTRACT_ADDRESS=0xF4260c4Ed0bfccdcB2244e0B816eE0A11e81c389
 VITE_CHAIN_ID=11155111
 VITE_CHAIN_NAME=Sepolia
 VITE_API_URL=            # leave empty to use the Vite dev proxy (/api)
@@ -276,13 +276,13 @@ Validation failures return `400` with a `details` array of field-level issues.
 | --------------------------------- | ------- | ------------ | ---------------------------------------------------------- |
 | `buyCredits()`                    | payable | ≥ 0.001 ETH  | Mints 1,000 credits per 0.001 ETH sent; forwards ETH to `recipient` |
 | `uploadVideo(title, description)` | public  | —            | Registers a video and grants the uploader access           |
-| `buyVideo(videoNumber)`           | public  | 100 credits  | Grants the caller permanent access to a video              |
+| `buyVideo(videoNumber)`           | public  | 100 credits  | Grants access; pays 50 to the creator and 50 to the platform |
 | `getVideo(_id)`                   | view    | —            | Returns video metadata — reverts if the caller has no access |
 | `getAccessList(videoNumber)`      | view    | —            | Lists all addresses with access to a video                 |
 | `hasVideoAccess(videoNumber, viewer)` | view | — | Checks one wallet's access without downloading the viewer list |
 | `getVideosByAddress(_addr)`       | view    | —            | Lists video ids an address owns or has purchased           |
 
-**Constants:** `CREDIT_PRICE = 0.001 ether` · `CREDITS_PER_UNIT = 1000` · `VIDEO_COST = 100`
+**Constants:** `CREDIT_PRICE = 0.001 ether` · `CREDITS_PER_UNIT = 1000` · `VIDEO_COST = 100` · `CREATOR_REWARD = 50` · `PLATFORM_COMMISSION = 50`
 
 **Events:** `VideoUploaded(id, title, description, uploader)` · `VideoPurchased(videoId, buyer)` · `CreditsPurchased(buyer, ethAmount, credits)`
 

@@ -32,7 +32,7 @@ export default function Profile() {
             <Stat label="Current balance" value={stats.current.toLocaleString()} detail="credits available" accent />
             <Stat label="Credits acquired" value={stats.bought.toLocaleString()} detail="total credited on-chain" />
             <Stat label="Credits spent" value={stats.spent.toLocaleString()} detail="uploads and unlocks" />
-            <Stat label="Credits earned" value={stats.earned.toLocaleString()} detail="creator rewards not enabled" />
+            <Stat label="Credits earned" value={stats.earned.toLocaleString()} detail="creator rewards and commission" />
           </div>
           <div className="profile-activity card"><div><span>Videos uploaded</span><strong>{stats.uploaded}</strong></div><div><span>Videos purchased</span><strong>{stats.purchased}</strong></div><div><span>Sepolia ETH</span><strong>{ethBalance}</strong></div></div>
         </>

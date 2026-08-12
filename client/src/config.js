@@ -1,5 +1,5 @@
 export const CONTRACT_ADDRESS =
-  import.meta.env.VITE_CONTRACT_ADDRESS || "0xa25d735b938FE3d565F38f49e33e9e0f483bD30E";
+  import.meta.env.VITE_CONTRACT_ADDRESS || "0xF4260c4Ed0bfccdcB2244e0B816eE0A11e81c389";
 
 export const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 

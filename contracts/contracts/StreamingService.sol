@@ -65,6 +65,10 @@ contract StreamingService is Ownable {
     /// @dev Price in credits to register one upload.
     uint256 public constant UPLOAD_COST = 100;
 
+    /// @dev Equal split of each video unlock between creator and platform.
+    uint256 public constant CREATOR_REWARD = 50;
+    uint256 public constant PLATFORM_COMMISSION = 50;
+
     /// @dev Address that receives all ETH from credit top-ups.
     address public immutable recipient;
 
@@ -80,6 +84,11 @@ contract StreamingService is Ownable {
     /// @dev Credit balances of viewers/creators.
     mapping(address => uint256) public balances;
 
+    /// @dev Lifetime credit accounting used by wallet profiles.
+    mapping(address => uint256) public creditsAcquired;
+    mapping(address => uint256) public creditsSpent;
+    mapping(address => uint256) public creditsEarned;
+
     /// @dev Ids of videos owned or purchased by an address.
     mapping(address => uint256[]) public videosByAddress;
 
@@ -93,6 +102,13 @@ contract StreamingService is Ownable {
     event VideoUploaded(uint256 indexed id, string title, string description, address indexed uploader);
     event VideoPurchased(uint256 indexed videoId, address indexed buyer);
     event CreditsPurchased(address indexed buyer, uint256 ethAmount, uint256 credits);
+    event CreditsDistributed(
+        uint256 indexed videoId,
+        address indexed creator,
+        address indexed platform,
+        uint256 creatorReward,
+        uint256 platformCommission
+    );
 
     /* ------------------------------------------------------------------ */
     /* Constructor                                                         */
@@ -121,6 +137,7 @@ contract StreamingService is Ownable {
 
         // effects
         balances[msg.sender] += credits;
+        creditsAcquired[msg.sender] += credits;
 
         // interactions
         (bool ok, ) = recipient.call{value: msg.value}("");
@@ -167,6 +184,7 @@ contract StreamingService is Ownable {
             revert InsufficientCredits(balances[uploader], UPLOAD_COST);
         }
         balances[uploader] -= UPLOAD_COST;
+        creditsSpent[uploader] += UPLOAD_COST;
         videoCount++;
         uint256 id = videoCount;
 
@@ -215,6 +233,14 @@ contract StreamingService is Ownable {
 
         // effects
         balances[buyer] -= VIDEO_COST;
+        creditsSpent[buyer] += VIDEO_COST;
+
+        address creator = videos[videoNumber].uploader;
+        address platform = owner();
+        balances[creator] += CREATOR_REWARD;
+        creditsEarned[creator] += CREATOR_REWARD;
+        balances[platform] += PLATFORM_COMMISSION;
+        creditsEarned[platform] += PLATFORM_COMMISSION;
 
         AccessControl storage ac = videoAccess[videoNumber];
         ac.hasAccess[buyer] = true;
@@ -223,6 +249,13 @@ contract StreamingService is Ownable {
         videosByAddress[buyer].push(videoNumber);
 
         emit VideoPurchased(videoNumber, buyer);
+        emit CreditsDistributed(
+            videoNumber,
+            creator,
+            platform,
+            CREATOR_REWARD,
+            PLATFORM_COMMISSION
+        );
     }
 
     function uploadAuthorizationHash(

@@ -228,15 +228,24 @@ export function WalletProvider({ children }) {
 
   const getAccountStats = useCallback(async () => {
     if (!contract || !account) return null;
-    const [ids, currentBalance] = await Promise.all([
+    const [ids, currentBalance, bought, spent, earned] = await Promise.all([
       contract.getVideosByAddress(account),
       contract.balances(account),
+      contract.creditsAcquired(account),
+      contract.creditsSpent(account),
+      contract.creditsEarned(account),
     ]);
     const records = await Promise.all(ids.map((id) => contract.videos(id)));
     const uploaded = records.filter((video) => video[3].toLowerCase() === account.toLowerCase()).length;
     const purchased = records.length - uploaded;
-    const spent = (uploaded + purchased) * VIDEO_COST_CREDITS;
-    return { uploaded, purchased, spent, bought: Number(currentBalance) + spent, earned: 0, current: Number(currentBalance) };
+    return {
+      uploaded,
+      purchased,
+      spent: Number(spent),
+      bought: Number(bought),
+      earned: Number(earned),
+      current: Number(currentBalance),
+    };
   }, [contract, account]);
 
   useEffect(() => {
