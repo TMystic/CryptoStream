@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { bucket } from "../config/firebase.js";
+import { getBucket } from "../config/firebase.js";
 
 export async function createUploadUrl({ contentType, originalName }) {
+  const bucket = getBucket();
   const objectName = `videos/${Date.now()}-${randomUUID()}-${sanitize(originalName)}`;
   const expiresAt = Date.now() + 15 * 60 * 1000;
   const [url] = await bucket.file(objectName).getSignedUrl({
@@ -14,11 +15,13 @@ export async function createUploadUrl({ contentType, originalName }) {
 }
 
 export async function inspectVideoFile(objectName) {
+  const bucket = getBucket();
   const [metadata] = await bucket.file(objectName).getMetadata();
   return { size: Number(metadata.size), contentType: metadata.contentType };
 }
 
 export async function createPlaybackUrl(objectName, expiresInMs = 10 * 60 * 1000) {
+  const bucket = getBucket();
   const [url] = await bucket.file(objectName).getSignedUrl({
     action: "read",
     expires: Date.now() + expiresInMs,
@@ -28,6 +31,7 @@ export async function createPlaybackUrl(objectName, expiresInMs = 10 * 60 * 1000
 
 export async function deleteVideoFile(objectName) {
   if (!objectName) return;
+  const bucket = getBucket();
   await bucket.file(objectName).delete({ ignoreNotFound: true });
 }
 

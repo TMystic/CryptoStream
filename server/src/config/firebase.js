@@ -1,16 +1,18 @@
 import admin from "firebase-admin";
 import { env } from "./env.js";
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: env.firebase.projectId,
-      clientEmail: env.firebase.clientEmail,
-      privateKey: env.firebase.privateKey,
-    }),
-    storageBucket: env.firebase.storageBucket,
-  });
-}
+export function getBucket() {
+  const { projectId, clientEmail, privateKey, storageBucket } = env.firebase;
+  if (!projectId || !clientEmail || !privateKey || !storageBucket) {
+    throw new Error("Firebase Storage is not configured on the server");
+  }
 
-export const storage = admin.storage();
-export const bucket = storage.bucket();
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+      storageBucket,
+    });
+  }
+
+  return admin.storage().bucket();
+}

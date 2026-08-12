@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { env } from "./config/env.js";
 import { connectDatabase } from "./config/database.js";
+import { AppError } from "./utils/AppError.js";
 import { apiRouter } from "./routes/index.js";
 import { notFoundHandler } from "./middleware/notFound.middleware.js";
 import { errorHandler } from "./middleware/error.middleware.js";
@@ -27,6 +28,7 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use("/api", async (req, _res, next) => {
   if (req.path === "/health") return next();
+  if (!env.mongoServer) return next(new AppError(503, "Database is not configured on the server"));
   try {
     await connectDatabase(env.mongoServer);
     next();

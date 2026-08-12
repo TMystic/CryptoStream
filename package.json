@@ -2,6 +2,7 @@
   "name": "cryptostream",
   "version": "2.0.0",
   "private": true,
+  "type": "module",
   "description": "CryptoStream — a decentralised video streaming service with on-chain access control",
   "workspaces": [
     "client",

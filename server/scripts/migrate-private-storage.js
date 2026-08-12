@@ -1,9 +1,10 @@
 import { env } from "../src/config/env.js";
 import { connectDatabase } from "../src/config/database.js";
-import { bucket } from "../src/config/firebase.js";
+import { getBucket } from "../src/config/firebase.js";
 import { Video } from "../src/models/video.model.js";
 
 await connectDatabase(env.mongoServer);
+const bucket = getBucket();
 
 const videos = await Video.find({
   storagePath: { $exists: false },
